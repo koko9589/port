@@ -1,0 +1,54 @@
+<?
+include_once "../include/header.php";
+
+$page_name = "<b>고객문의</b>";
+
+$idx = $_GET['idx'];
+$sql = "SELECT * FROM question WHERE idx='$idx'";
+$result = mysql_query($sql,$connect);
+$data = mysql_fetch_array($result);
+
+?>
+
+<body>
+<style>
+table { width:100%; table-layout:fixed;}
+table th { padding:5px; border:1px solid #999; width: 10%;text-align: left;background-color:#f5f5f5;font-weight: bold;text-align: center;}
+table td { padding:5px; border:1px solid #999; }
+
+</style>
+<div id="wrap">
+
+<? include_once "../include/gnb.php"; ?>
+
+<!-- s:middle -->
+<div id="middle">
+	<div id="navi">
+		B2B Manager > <?=$page_name?> &nbsp;
+	</div>
+
+<? include_once "../include/lnb.php"; ?>
+
+
+	<div id="content">
+<!-- s:content -->
+		<div class="page-header">
+			  <h3>고객문의 </h3>
+			  <div style="width:100%;text-align:right;">
+  				<span>작성시간 : <?=$data['date']?></span>
+  			</div>
+		</div>
+
+		<table>
+		
+		</table>
+		<div style="text-align:center;padding-top:20px;">
+			<input type="button" class="btn btn-default" onclick="javascript:history.go(-1);" value="목록"/>
+		</div>
+<!-- e:content -->
+	</div>
+
+</div>
+<!-- e:middle -->
+
+<? include_once "../include/footer.php"; ?>

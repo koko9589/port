@@ -1,0 +1,146 @@
+<?
+include_once "../include/header.php";
+
+$page_name = "<b>고객문의</b>";
+
+$search_value = trim($_GET['search_value']);
+$page = $_GET['page'];
+if($page<1)
+{
+    $page=1;
+}
+$view_page = 30; // 가져올 개수;
+$pages = $view_page*($page-1);
+
+//총 개수
+$sql = "SELECT * FROM question ";
+$result = mysql_query($sql,$connect);
+$total = mysql_num_rows($result);
+$n = $total - ($page-1) * $view_page;
+
+$sql = "SELECT * FROM question ORDER BY idx DESC LIMIT $pages,$view_page";
+
+$b_page = 5;
+// 블럭 개수
+$block = ceil($page/$b_page); // 1개 / 5개 = 1개
+$b_start_page = ( ($block - 1) * $b_page ) +1;  // 1-1 = 0 * 5 = 0 + 1 = 1;
+$b_end_page = $b_start_page + $b_page -1;
+
+//총 페이지
+$total_page = ceil($total/$view_page); // 70개 / 10 = 7개
+$total_block = ceil($total_page/$b_page);
+
+if ($b_end_page > $total_page)$b_end_page = $total_page;
+
+if($search_value != "")
+{
+    // 검색된 결과
+    $sql = "SELECT * FROM question WHERE `description` LIKE '%$search_value%' or `tel` LIKE '%$search_value%' or`name` LIKE '%$search_value%' or `company` LIKE '%$search_value%' ORDER BY idx asc, date asc LIMIT $pages,$view_page";
+
+    //총 페이지
+    $search_page = ceil($search_total/$view_page); // 70개 / 10 = 7개
+    $search_block = ceil($search_page/$b_page);
+
+    if ($b_end_page > $search_page)$b_end_page = $search_page;
+
+}
+$result = mysql_query($sql,$connect);
+?>
+
+<body>
+<style>
+table { width:100%; table-layout:fixed;}
+table th { padding:5px; border-top:1px solid #999;text-align:left; border-bottom:1px solid #999; background-color:#f5f5f5; }
+table td { padding:5px; border-bottom:1px dashed #999;text-align: left;white-space: nowrap;text-overflow:ellipsis;overflow:hidden;}
+table tr:hover{background-color:#f1f1f1;}
+.tr_click{cursor: pointer;}
+</style>
+<div id="wrap">
+
+<? include_once "../include/gnb.php"; ?>
+<!-- s:middle -->
+<div id="middle">
+	<div id="navi">
+		B2B Manager > <?=$page_name?> &nbsp;
+	</div>
+
+<? include_once "../include/lnb.php"; ?>
+
+	<div id="content">
+<!-- s:content -->
+
+<!-- 검색 폼 -->
+        <div class="search" style="padding-bottom:10px;">
+            <form name="seach_form" method="get"  action = "index.html" onsubmit="return search_form_submit(); ">
+                <strong>검색어 : &nbsp</strong>
+                <input name="search_value" id="search_value" type="text" value="<?=$search_value?>" style="width:20%;"/>
+                <input type="image" src="../images/btn_search.gif" style="height:100%;"/>
+            </form>
+        </div>
+
+        <table border="0" class="content_table" >
+              <thead>
+                  <tr>
+                      <th style="width:62px;text-align:center;">No</th>
+                      <th style="width:15%;text-align:left;">회사명</th>
+                      <th style="width:15%;text-align:center;">이름</th>
+                      <th style="width:35%;text-align:center;">내용</th>
+                      <th style="width:15%;text-align:center;">연락처</th>
+                      <!-- <th style="width:20%;text-align:center;">이메일</th> -->
+                      <th style="width:15%;text-align:center;">작성시간</th>
+                      <th style="width:5%;">상태</th>
+                  </tr>
+              </thead>
+               <? while ($data = mysql_fetch_array($result)){
+                  $rs2 = mysql_query("SELECT * FROM `recommend` WHERE `category` = 'question' AND `category_idx` = '$data[idx]'");
+                  $dt2 = mysql_fetch_array($rs2);
+                   $data = str_replace($search_value, "<strong style='background-color:yellow'>".$search_value."</strong>",$data);
+
+
+
+                   // 상태여부 색깔
+                   $success_font = "";
+                   if($dt2['success'] == "진행") $success_font = "color:green;font-weight:bold";
+                   if($dt2['success'] == "성공") $success_font = "color:blue;font-weight:bold";
+                   if($dt2['success'] == "실패") $success_font = "color:red;font-weight:bold";
+
+               ?>
+              <tbody>
+                  <tr class="tr_click" onclick="location.href='../estimate/view.html?question=question&idx=<?=$data[idx]?>';">
+                      <td style="text-align:center;"><?=$n?></td>
+                      <td style="text-align:left;" title="<?=$data['company']?>"><?=$data['company']?></a></td>
+                      <td style="text-align:center;"><?=$data['name']?></a></td>
+                      <td style="text-align:left;" title="<?=$data['description']?>"><?=$data['description']?></a></td>
+                      <td style="text-align:center;"><?=$data['tel']?></td>
+                      <!-- <td><?=$data['email']?></td> -->
+                      <td style="text-align:center;"><? echo date("y-m-d H:i",strtotime($data['date']));?></td>
+                      <td style="<?=$success_font?>"><? if($dt2['success'] =="") { echo "대기"; } else { echo $dt2['success']; }?></td>
+                  </tr>
+              </tbody>
+              <? $n--; } ?>
+          <!--확인-->
+        </table>
+
+        <div class="pageing" style="width:100%;text-align:center;">
+                  <ul class="pagination pagination-sm" style="text-align:center;">
+                       <? if($page>1){$pre = $page-1;?>
+                           <li><a href="index.html?page=<?=$pre?>">이전</a></li>
+                       <? } ?>
+                       <? for($i=$b_start_page; $i<=$b_end_page; $i++){?>
+                           <? if($page==$i){?>
+                               <li class="active"><a href="#"><?=$i?></a></li>
+                           <?php }else {?>
+                      <li ><a href="index.html?page=<?=$i?>"><?=$i?></a></li>
+                      <? }} if($page<$total_page){ $next=$page+1; ?>
+                          <li style=""><a href="index.html?page=<?=$next?>">다음</a></li>
+                      <? } ?>
+                      <!-- <li ><div style="float:right;width:200px;"><button type="button" class="btn btn-default"  onclick="location.href='write.php'">글쓰기</button></div></li>
+                      <li style="display:block;margin-top:30px;"> <select><option value="dd">제목</option></select><input type="text"/><button type="button">검색</button></li> -->
+                  </ul>
+          </div>
+<!-- e:content -->
+	</div>
+</div>
+
+<!-- e:middle -->
+<? include_once "../include/footer.php"; ?>

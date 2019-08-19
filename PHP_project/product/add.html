@@ -1,0 +1,227 @@
+<?
+include_once "../include/header.php";
+
+$page_name = "제품관리 > <b>제품추가</b>";
+$num=1;
+
+?>
+
+<body>
+<style>
+ table { width:100%; }
+ table th { padding:5px; border-top:1px solid #999; border-bottom:1px solid #999; background-color:#f5f5f5;text-align:center; }
+ table td { padding:5px; border-bottom:1px dashed #999; text-align:center; }
+ .top_button{ padding:5px;}
+ #save{ padding:5px;background}
+</style>
+<div id="wrap">
+
+<? include_once "../include/gnb.php"; ?>
+
+<!-- s:middle -->
+<div id="middle">
+	<div id="navi">
+		B2B Manager > <?=$page_name?> &nbsp;
+	</div>
+
+<? include_once "../include/lnb.php"; ?>
+
+
+    <div id="content">
+<!-- s:content -->
+	<form name="product_form" method="POST" action="productDB.php" enctype="multipart/form-data" onsubmit="return chk(); " >
+        <!--submit 버튼-->
+        <div style="margin-bottom:5px;">
+            <button type="submit" class="btn btn-default">저장</button>
+            <input type="button" class="btn btn-default"value="행 추가" id="add" style="width:7%;" />
+        </div>
+	<table border="0" class="content_table">
+			<thead>
+				<tr>
+					<th style="width:5%">No</th>
+                    <th style="width:15%">카테고리</th>
+					<th style="width:13%">제품명</th>
+					<th style="width:10%">수량</th>
+                    <th style="width:10%">가격</th>
+                    <th style="width:20%">제품상세</th>
+                    <th style="width:7%">추천상품</th>
+                    <th>이미지</th>
+                    <th>삭제</th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr id="product_<?=$num?>">
+					<td><?=$num?></td>
+              <td>
+              <select name="product_select[]" style="width:100%;height:20px;">
+                  <optgroup label="주방가전">
+                      <option value="주방가전;에어프라이어">에어프라이어</option>
+                      <option value="주방가전;블렌더/쥬서기">블렌더/쥬서기</option>
+                      <option value="주방가전;전기주전자">전기주전자</option>
+                      <option value="주방가전;토스터">토스터</option>
+                      <option value="주방가전;그릴">그릴</option>
+                      <option value="주방가전;찜기">찜기</option>
+                  </optgroup>
+
+                  <optgroup label="면도기">
+                      <option value="면도기;9000시리즈">9000시리즈</option>
+                      <option value="면도기;7000시리즈">7000시리즈</option>
+                      <option value="면도기;센소터치2D">센소터치2D</option>
+                      <option value="면도기;아쿠아터치">아쿠아터치</option>
+                      <option value="면도기;파워터치">파워터치</option>
+                      <option value="면도기;클래식">클래식</option>
+                      <option value="면도기;영킷">영킷</option>
+                      <option value="면도기;여행용 면도기">여행용 면도기</option>
+                  </optgroup>
+
+                  <optgroup label="전동칫솔">
+                      <option value="전동칫솔;소닉케어 전동칫솔">소닉케어 전동칫솔</option>
+                      <option value="전동칫솔;소닉케어 키즈">소닉케어 키즈</option>
+                      <option value="전동칫솔;소닉케어 에어플로스">소닉케어 에어플로스</option>
+                  </optgroup>
+
+                  <optgroup label="뷰티제품">
+                      <option value="뷰티제품;스킨케어/진동클렌저">스킨케어/진동클렌저</option>
+                      <option value="뷰티제품;헤어드라이어">헤어드라이어</option>
+                      <option value="뷰티제품;헤어스트레이트너">헤어스트레이트너</option>
+                      <option value="뷰티제품;헤어스타일러">헤어스타일러</option>
+                      <option value="뷰티제품;여성용 제모기">여성용 제모기</option>
+                  </optgroup>
+
+                  <optgroup label="다리미">
+                      <option value="다리미;스팀 시스템다리미">스팀 시스템다리미</option>
+                      <option value="다리미;퀵 스팀다리미">퀵 스팀다리미</option>
+                      <option value="다리미;무선 다리미">무선 다리미</option>
+                      <option value="다리미;보급형 스팀다리미">보급형 스팀다리미</option>
+                      <option value="다리미;실속형 스팀다리미">실속형 스팀다리미</option>
+                      <option value="다리미;여행용/건식다리미">여행용/건식다리미</option>
+                  </optgroup>
+
+                  <optgroup label="청소기" >
+                      <option value="청소기;싸이클론형 진공청소기">싸이클론형 진공청소기</option>
+                      <option value="청소기;휴대용 진공청소기">휴대용 진공청소기</option>
+                      <option value="청소기;아쿠아트리오">아쿠아트리오</option>
+                      <option value="청소기;로봇 청소기">로봇 청소기</option>
+                  </optgroup>
+
+                  <optgroup label="커피머신">
+                      <option value="커피머신;커피메이커">커피메이커</option>
+                      <option value="커피머신;파드 커피머신">파드 커피머신</option>
+                      <option value="커피머신;전자동 에스프레소머신">전자동 에스프레소머신</option>
+                      <option value="커피머신;수동 에스프레소머신">수동 에스프레소머신</option>
+                  </optgroup>
+
+                  <optgroup label="유아용품">
+                      <option value="유아용품;모유수유">모유수유</option>
+                      <option value="유아용품;젖병수유">젖병수유</option>
+                      <option value="유아용품;유아컵">유아컵</option>
+                      <option value="유아용품;이유식 준비">이유식 준비</option>
+                  </optgroup>
+
+                  <optgroup label="건강/의료">
+                      <option value="건강/의료;라이트 테라피">라이트 테라피</option>
+                      <option value="건강/의료;가정용 적외선기기">가정용 적외선기기</option>
+                  </optgroup>
+
+                  <optgroup label="기타">
+                      <option value="기타;기타">기타</option>
+                  </optgroup>
+
+              </select>
+          </td>
+		  <td><input type="text" name="product_pcode[]"  style="width:100%;height:20px;"/></td>
+		  <td><input type="text" name="product_qty[]" style="width:100%;text-align:right;height:20px;" onkeyup="inputNumberFormat(this)"  /></td>
+          <td><input type="text" name="product_price[]" style="width:100%;text-align:right;height:20px;" id="price" onkeyup="inputNumberFormat(this)" /></td>
+          <td><textarea rows="1" name="product_memo[]" style="width:100%;height:20px;"></textarea></td>
+          <td><input type="text" name="product_recommend[]" style="width:100%;text-align:center;height:20px;"/></td>
+          <td><input type="file" name="product_file_<?=$num?>[]" multiple="multiple" onchange="myFunction(<?=$num?>);"  id="product_file_<?=$num?>"></td>
+          <td><button type="button" onclick="product_reset()" style="width:100%;height:20px;"><img src="../images/btn_del.gif"  style="padding-bottom:5px;"/></button></td>
+          <input type="hidden" name="product_count[]" />
+
+				</tr>
+                <?$num++;?>
+			</tbody>
+	</table>
+</form>
+<!-- e:content -->
+</div>
+</div>
+
+<!-- e:middle -->
+<script>
+
+var num='<?=$num?>';
+
+// 수량, 가격 콤마(숫자만)
+function comma(str) {
+    str = String(str);
+    return str.replace(/(\d)(?=(?:\d{3})+(?!\d))/g, '$1,');
+}
+function uncomma(str) {
+    str = String(str);
+    return str.replace(/[^\d]+/g, '');
+}
+function inputNumberFormat(obj) {
+    obj.value = comma(uncomma(obj.value));
+}
+function product_reset(){
+    if(confirm('입력하신 전체내용을 지우시겠습니까?'))
+    {
+        product_form.reset();
+    }
+    return false;
+}
+
+// 파일 개수 제한
+function myFunction(n){
+  var x = document.getElementById("product_file_"+n);
+   if ('files' in x) {
+       if (x.files.length > 4) {
+          alert("파일 개수가 초과되었습니다.");
+          document.getElementById("product_file_"+n).value = "";
+          return;
+       }
+   }
+   return;
+}
+// 입력란 체크
+function chk(){
+
+    var count = document.getElementsByName("product_count[]");
+    for(i=0; i<count.length; i++)
+    {
+        // var pcode = document.product_form['product_pcode[]'][i].value;
+        // var qty = document.product_form['product_qty[]'][i].value;
+        // var price = document.product_form['product_price[]'][i].value;
+        // var memo = document.product_form['product_memo[]'][i].value;
+        // var tel = document.product_form['product_tel[]'][i].value;
+      var pcode = document.getElementsByName("product_pcode[]")[i].value;
+      var qty = document.getElementsByName("product_qty[]")[i].value;
+      var price = document.getElementsByName("product_price[]")[i].value;
+      var memo = document.getElementsByName("product_memo[]")[i].value;
+    //   var tel = document.getElementsByName("product_tel[]")[i].value;
+
+        if(pcode == "" || qty == "" || price == "" || memo == "")
+        {
+                alert("입력란이 비었습니다. 확인해주세요.");
+                return false;
+        }
+    }
+    return;
+}
+
+// 행 추가
+$('#add').click(function(){
+$('.content_table tbody:last tr:last').after('<tr id="product'+num+'"><td>'+num+'</td><td><select name="product_select[]" style="width:100%;height:20px;"><optgroup label="주방가전"><option value="주방가전;에어프라이어">에어프라이어</option><option value="주방가전;블렌더/쥬서기">블렌더/쥬서기</option><option value="주방가전;전기주전자">전기주전자</option><option value="주방가전;토스터">토스터</option><option value="주방가전;그릴">그릴</option><option value="주방가전;찜기">찜기</option></optgroup><optgroup label="면도기"><option value="면도기;9000시리즈">9000시리즈</option><option value="면도기;7000시리즈">7000시리즈</option><option value="면도기;센소터치2D">센소터치2D</option><option value="면도기;아쿠아터치">아쿠아터치</option><option value="면도기;파워터치">파워터치</option><option value="면도기;클래식">클래식</option><option value="면도기;영킷">영킷</option><option value="면도기;여행용 면도기">여행용 면도기</option></optgroup><optgroup label="전동칫솔"><option value="전동칫솔;소닉케어 전동칫솔">소닉케어 전동칫솔</option><option value="전동칫솔;소닉케어 키즈">소닉케어 키즈</option><option value="전동칫솔;소닉케어 에어플로스">소닉케어 에어플로스</option></optgroup><optgroup label="뷰티제품"><option value="뷰티제품;스킨케어/진동클렌저">스킨케어/진동클렌저</option><option value="뷰티제품;헤어드라이어">헤어드라이어</option><option value="뷰티제품;헤어스트레이트너">헤어스트레이트너</option><option value="뷰티제품;헤어스타일러">헤어스타일러</option><option value="뷰티제품;여성용 제모기">여성용 제모기</option></optgroup><optgroup label="다리미"><option value="다리미;스팀 시스템다리미">스팀 시스템다리미</option><option value="다리미;퀵 스팀다리미">퀵 스팀다리미</option><option value="다리미;무선 다리미">무선 다리미</option><option value="다리미;보급형 스팀다리미">보급형 스팀다리미</option><option value="다리미;실속형 스팀다리미">실속형 스팀다리미</option><option value="다리미;여행용/건식다리미">여행용/건식다리미</option></optgroup><optgroup label="청소기" ><option value="청소기;싸이클론형 진공청소기">싸이클론형 진공청소기</option><option value="청소기;휴대용 진공청소기">휴대용 진공청소기</option><option value="청소기;아쿠아트리오">아쿠아트리오</option><option value="청소기;로봇 청소기">로봇 청소기</option></optgroup><optgroup label="커피머신"><option value="커피머신;커피메이커">커피메이커</option><option value="커피머신;파드 커피머신">파드 커피머신</option><option value="커피머신;전자동 에스프레소머신">전자동 에스프레소머신</option><option value="커피머신;수동 에스프레소머신">수동 에스프레소머신</option></optgroup><optgroup label="유아용품"><option value="유아용품;모유수유">모유수유</option><option value="유아용품;젖병수유">젖병수유</option><option value="유아용품;유아컵">유아컵</option><option value="유아용품;이유식 준비">이유식 준비</option></optgroup><optgroup label="건강/의료"><option value="건강/의료;라이트 테라피">라이트 테라피</option><option value="건강/의료;가정용 적외선기기">가정용 적외선기기</option></optgroup><optgroup label="기타"><option value="기타;기타">기타</option></optgroup></select></td><td><input type="text" name="product_pcode[]" style="width:100%;height:20px;"/></td><td><input type="text" name="product_qty[]" style="width:100%;text-align:right;height:20px;" onkeyup="inputNumberFormat(this)"/></td><td><input type="text" name="product_price[]" style="width:100%;text-align:right;height:20px;" id="price" onkeyup="inputNumberFormat(this)"  /></td><td><textarea rows="1" name="product_memo[]" style="width:100%;height:20px;"></textarea></td><td><input type="text" name="product_recommend[]" style="width:100%;text-align:center;height:20px;"/></td><td><input type="file" name="product_file_'+num+'[]" multiple="multiple" onchange="myFunction('+num+');"  id="product_file_'+num+'" style="padding-bottom:5px;"/></td><td><input type="image" src="../images/btn_del.gif" onclick="deleteRow('+num+')" /><input type="hidden" name="product_count[]" /></td></tr>');
+num++;
+});
+
+
+// 행 삭제
+function deleteRow(num)
+{
+    if(confirm('삭제하시겠습니까?'))
+        $('#product'+num).remove();
+}
+</script>
+<? include_once "../include/footer.php"; ?>
