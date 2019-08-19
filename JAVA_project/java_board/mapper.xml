@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="mapper">
+
+	<resultMap type="map" id="rsMap">
+		<result column="SEQ" property="seq"/>
+		<result column="MEM_ID" property="memId"/>
+		<result column="MEM_NAME" property="memName"/>
+		<result column="BOARD_SUBJECT" property="boardSubject"/>
+		<result column="BOARD_CONTENT" property="boardContent"/>
+		<result column="REG_DATE" property="regDate"/>
+		<result column="UPT_DATE" property="uptDate"/>
+		<result column="VIEW_CNT" property="viewCnt"/>
+	</resultMap>
+	
+	<sql id="listSql">
+		SELECT
+			
+			SEQ
+			,MEM_ID
+			,MEM_NAME
+			,BOARD_SUBJECT
+			,BOARD_CONTENT
+			,REG_DATE
+			,UPT_DATE
+			,VIEW_CNT
+		FROM BOARD_STUDY
+		where 1=1
+	</sql>
+	
+	<select id="listMap" resultMap="rsMap">
+		<include refid="listSql"></include>
+	</select>
+	
+
+	<select id="list" resultType="com.com.ocm.vo.BoardVO" parameterType="map">
+		select * from (
+			SELECT
+				rownum rnum
+				,SEQ
+				,MEM_ID
+				,MEM_NAME
+				,BOARD_SUBJECT
+				,BOARD_CONTENT
+				,REG_DATE
+				,UPT_DATE
+				,VIEW_CNT
+			FROM BOARD_STUDY
+			where 1=1
+			<choose>
+				<when test="searchType=='memName'">
+					and mem_name like '%'||#{searchTxt}||'%'
+				</when>
+				<when test="searchType=='boardSubject'">
+					and board_subject like '%'||#{searchTxt}||'%'
+				</when>
+				<when test="searchType=='subCont'">
+					and (board_subject like '%'||#{searchTxt}||'%' or board_content like '%'||#{searchTxt}||'%')
+				</when>
+			</choose>
+			<if test="stDate != '' and stDate != null">
+	<!-- 			and to_char(reg_date, 'yyyy-MM-dd') >= #{stDate} -->
+	<!-- 			and to_char(reg_date, 'yyyy-MM-dd') <![CDATA[ <= ]]> #{endDate} -->
+				and to_char(reg_date, 'yyyy-MM-dd') between #{stDate} and #{endDate}
+			</if>						
+		)where rnum between (#{pageNo}-1)*#{listSize}+1 and #{pageNo} * #{listSize}
+	</select>
+	
+	<select id="totalCount" resultType="integer" parameterType="map">
+		select count(seq) from board_study
+		where 1=1
+			<choose>
+				<when test="searchType=='memName'">
+					and mem_name like '%'||#{searchTxt}||'%'
+				</when>
+				<when test="searchType=='boardSubject'">
+					and board_subject like '%'||#{searchTxt}||'%'
+				</when>
+				<when test="searchType=='subCont'">
+					and (board_subject like '%'||#{searchTxt}||'%' or board_content like '%'||#{searchTxt}||'%')
+				</when>
+			</choose>
+			<if test="stDate != '' and stDate != null">
+	<!-- 			and to_char(reg_date, 'yyyy-MM-dd') >= #{stDate} -->
+	<!-- 			and to_char(reg_date, 'yyyy-MM-dd') <![CDATA[ <= ]]> #{endDate} -->
+				and to_char(reg_date, 'yyyy-MM-dd') between #{stDate} and #{endDate}
+			</if>
+	</select>
+	
+	<insert id="insert" parameterType="com.com.ocm.vo.BoardVO">
+		insert into board_study 
+		(
+			SEQ
+			,MEM_ID
+			,MEM_NAME
+			,BOARD_SUBJECT
+			,BOARD_CONTENT
+			,REG_DATE
+			,VIEW_CNT
+		)values(
+			(select nvl(max(seq),0)+1 from board_Study)
+			,#{MEM_ID}
+			,#{MEM_NAME}
+			,#{BOARD_SUBJECT}
+			,#{BOARD_CONTENT}
+			,sysdate
+			,'0'
+		)
+		
+	</insert>
+	
+	<select id="detail" parameterType="integer" resultType="map">
+		<include refid="listSql"></include>
+		WHERE SEQ = #{seq}
+	</select>
+	
+	<update id="update" parameterType="map">
+		update board_study
+		set MEM_ID = #{MEM_ID}
+			,MEM_NAME = #{MEM_NAME}
+			,BOARD_SUBJECT = #{BOARD_SUBJECT}
+			,BOARD_CONTENT = #{BOARD_CONTENT}
+			,UPT_DATE = sysdate
+		where seq = #{SEQ}
+	</update>	
+	
+	<delete id="delete" parameterType="list">
+		delete from board_study
+		where seq in
+		<foreach collection="list" open="(" close=")" separator="," item="item">
+			#{item}
+		</foreach>
+	</delete>
+	
+</mapper>
