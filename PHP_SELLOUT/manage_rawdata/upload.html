@@ -1,0 +1,77 @@
+<? include_once "../common/header_inc.php"; ?>
+<?
+$sql = "select raw_channel from master_account group by raw_channel order by raw_channel asc";
+$rs = mysql_query($sql,$connect);
+$channel_arr = array();
+while($data = mysql_fetch_array($rs)){
+	$channel_arr[] = $data[raw_channel];
+}
+
+$channel = $_GET[channel];
+//$channel = "Online";
+
+
+$sql = "select file_name from raw_title order by times desc limit 0, 1";
+@$last_file = mysql_result(mysql_query($sql,$connect),0,0);
+?>
+<script>
+$(function() {
+	$( "#s_date" ).datepicker({
+		dateFormat: "yy-mm-dd"
+	});
+	$( ".button" ).button();
+});
+function chk(){
+	if(xls_form.channel.value == ""){
+		alert("Account 구분을 선택하세요.");
+		return;
+	}
+	if(xls_form.xlsfile.value == ""){
+		alert("업로드할 파일을 선택해주세요.");
+		return;
+	}
+	xls_form.submit();
+}
+</script>
+<body>
+
+<h1>Manage</h1>
+<h2>RawData</h2>
+
+<? include_once "../common/menu_inc.php"; ?>
+
+<div style="width:1600px">
+	<div class="container">
+
+<form name="xls_form" method="post" action="upload.php" enctype="multipart/form-data">
+<div style="padding:5px;">
+Account 구분 : 
+<select name="channel" style="height:24px;width:120px;">
+	<option value="">Select</option>
+<? for($a = 0; $a < count($channel_arr); $a++){ ?>
+	<option value="<?=$channel_arr[$a]?>" <? if($channel_arr[$a] == $channel) echo "selected"; ?>><?=$channel_arr[$a]?></option>
+<? } ?>
+</select>
+</div>
+<div style="padding:5px;">
+설정 판매 날짜 : 
+<input name="s_date" id="s_date" value="<?=date("Y-m-d",strtotime(date("Y-m-d")." -1 days"))?>" style="width:115px;font-weight:bold;padding-bottom:2px;" /> (날짜가 로우 데이터에 없는 경우에 판매일로 설정됨)	<br />
+</div>
+<div style="padding:5px;">
+파일 선택 : 
+<input name="xlsfile" type="file" style="width:600px" />
+<button type="button" class="button" onclick="chk()" style="background-color:#99ccff">업로드</button>
+<button type="button" class="button" onclick="history.go(-1)">뒤로</button>
+(최종 업로드 파일 : <?=$last_file?>)
+</div>
+<br />
+<span style="color:red;">Excel 97 ~ 2003 통합문서 (*.xls) 형식의 엑셀파일만 업로드 가능합니다.</span>
+</form>
+
+	</div>
+
+
+
+<div>
+ </body>
+</html>

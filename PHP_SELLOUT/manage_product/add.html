@@ -1,0 +1,256 @@
+<? include_once "../common/header_inc.php"; ?>
+<?
+$id = trim($_GET["id"]);
+
+$sql = "select bg from master_product where bg != '' group by bg order by bg asc";
+$rs = mysql_query($sql,$connect);
+$bg_arr = array();
+while($data = mysql_fetch_array($rs)){
+	$bg_arr[] = $data[bg];
+}
+
+$sql = "select bg_disc from master_product where bg_disc != '' group by bg_disc order by bg_disc asc";
+$rs = mysql_query($sql,$connect);
+$bg_disc_arr = array();
+while($data = mysql_fetch_array($rs)){
+	$bg_disc_arr[] = $data[bg_disc];
+}
+
+$sql = "select bu from master_product where bu != '' group by bu order by bu asc";
+$rs = mysql_query($sql,$connect);
+$bu_arr = array();
+while($data = mysql_fetch_array($rs)){
+	$bu_arr[] = $data[bu];
+}
+
+$sql = "select bu_disc from master_product where bu_disc != '' group by bu_disc order by bu_disc asc";
+$rs = mysql_query($sql,$connect);
+$bu_disc_arr = array();
+while($data = mysql_fetch_array($rs)){
+	$bu_disc_arr[] = $data[bu_disc];
+}
+
+$sql = "select mag from master_product where mag != '' group by mag order by mag asc";
+$rs = mysql_query($sql,$connect);
+$mag_arr = array();
+while($data = mysql_fetch_array($rs)){
+	$mag_arr[] = $data[mag];
+}
+
+$sql = "select mag_disc from master_product where mag_disc != '' group by mag_disc order by mag_disc asc";
+$rs = mysql_query($sql,$connect);
+$mag_disc_arr = array();
+while($data = mysql_fetch_array($rs)){
+	$mag_disc_arr[] = $data[mag_disc];
+}
+
+$sql = "select ag from master_product where ag != '' group by ag order by ag asc";
+$rs = mysql_query($sql,$connect);
+$ag_arr = array();
+while($data = mysql_fetch_array($rs)){
+	$ag_arr[] = $data[ag];
+}
+
+$sql = "select ag_disc from master_product where ag_disc != '' group by ag_disc order by ag_disc asc";
+$rs = mysql_query($sql,$connect);
+$ag_disc_arr = array();
+while($data = mysql_fetch_array($rs)){
+	$ag_disc_arr[] = $data[ag_disc];
+}
+?>
+<script>
+$(function() {
+	$( ".button" ).button();
+});
+function add_chk(){
+	if(add_form.bg.value == ""){
+		alert("BG를 선택하세요.");
+		add_form.bg.focus();
+		return;
+	}
+	if(add_form.bg_disc.value == ""){
+		alert("BG Disc를 선택하세요.");
+		add_form.bg_disc.focus();
+		return;
+	}
+	if(add_form.bu.value == ""){
+		alert("BU를 선택하세요.");
+		add_form.bu.focus();
+		return;
+	}
+	if(add_form.bu_disc.value == ""){
+		alert("BU Disc를 선택하세요.");
+		add_form.bu_disc.focus();
+		return;
+	}
+	if(add_form.mag.value == ""){
+		alert("MAG를 선택하세요.");
+		add_form.mag.focus();
+		return;
+	}
+	if(add_form.mag_disc.value == ""){
+		alert("MAG Disc를 선택하세요.");
+		add_form.mag_disc.focus();
+		return;
+	}
+	if(add_form.ag.value == ""){
+		alert("AG를 선택하세요.");
+		add_form.ag.focus();
+		return;
+	}
+	if(add_form.ag_disc.value == ""){
+		alert("AG Disc를 선택하세요.");
+		add_form.ag_disc.focus();
+		return;
+	}
+	if(add_form.model_name.value == ""){
+		alert("Model Name을 입력하세요.");
+		add_form.model_name.focus();
+		return;
+	}
+	if(add_form.nc.value == ""){
+		alert("12NC을 입력하세요.");
+		add_form.nc.focus();
+		return;
+	}
+	if(add_form.lrrp.value == ""){
+		alert("LRRP를 입력하세요.");
+		add_form.lrrp.focus();
+		return;
+	}
+	add_form.submit();
+}
+</script>
+<style>
+th, td { padding:3px; border:1px solid #ccc; }
+th { background-color:#ebebeb; text-align:left; font-weight:bold; }
+select { height:24px;width:300px; }
+input { height:20px;width:99%; }
+</style>
+<body>
+
+<h1>Manage</h1>
+<h2>Product Master</h2>
+
+<? include_once "../common/menu_inc.php"; ?>
+
+<div style="width:1600px">
+	<div class="container">
+		<form name="add_form" method="post" action="add_proc.php">
+		<table>
+			<colgroup>
+				<col width="120" />
+				<col width="400" />
+			</colgroup>
+			<tr>
+				<th>BG</th>
+				<td>
+					<select name="bg">
+						<option value="">Select</option>
+<? for($a = 0; $a < count($bg_arr); $a++){ ?>
+						<option value="<?=$bg_arr[$a]?>"><?=$bg_arr[$a]?></option>
+<? } ?>
+					</select>
+				</td>
+			</tr>
+			<tr>
+				<th>BG Disc</th>
+				<td>
+					<select name="bg_disc">
+						<option value="">Select</option>
+<? for($a = 0; $a < count($bg_disc_arr); $a++){ ?>
+						<option value="<?=$bg_disc_arr[$a]?>"><?=$bg_disc_arr[$a]?></option>
+<? } ?>
+					</select>
+				</td>
+			</tr>
+			<tr>
+				<th>BU</th>
+				<td>
+					<select name="bu">
+						<option value="">Select</option>
+<? for($a = 0; $a < count($bu_arr); $a++){ ?>
+						<option value="<?=$bu_arr[$a]?>"><?=$bu_arr[$a]?></option>
+<? } ?>
+					</select>
+				</td>
+			</tr>
+			<tr>
+				<th>BU Disc</th>
+				<td>
+					<select name="bu_disc">
+						<option value="">Select</option>
+<? for($a = 0; $a < count($bu_disc_arr); $a++){ ?>
+						<option value="<?=$bu_disc_arr[$a]?>"><?=$bu_disc_arr[$a]?></option>
+<? } ?>
+					</select>
+				</td>
+			</tr>
+			<tr>
+				<th>MAG</th>
+				<td>
+					<select name="mag">
+						<option value="">Select</option>
+<? for($a = 0; $a < count($mag_arr); $a++){ ?>
+						<option value="<?=$mag_arr[$a]?>"><?=$mag_arr[$a]?></option>
+<? } ?>
+					</select>
+				</td>
+			</tr>
+			<tr>
+				<th>MAG Disc</th>
+				<td>
+					<select name="mag_disc">
+						<option value="">Select</option>
+<? for($a = 0; $a < count($mag_disc_arr); $a++){ ?>
+						<option value="<?=$mag_disc_arr[$a]?>"><?=$mag_disc_arr[$a]?></option>
+<? } ?>
+					</select>
+				</td>
+			</tr>
+			<tr>
+				<th>AG</th>
+				<td>
+					<select name="ag">
+						<option value="">Select</option>
+<? for($a = 0; $a < count($ag_arr); $a++){ ?>
+						<option value="<?=$ag_arr[$a]?>"><?=$ag_arr[$a]?></option>
+<? } ?>
+					</select>
+				</td>
+			</tr>
+			<tr>
+				<th>AG Disc</th>
+				<td>
+					<select name="ag_disc">
+						<option value="">Select</option>
+<? for($a = 0; $a < count($ag_disc_arr); $a++){ ?>
+						<option value="<?=$ag_disc_arr[$a]?>"><?=$ag_disc_arr[$a]?></option>
+<? } ?>
+					</select>
+				</td>
+			</tr>
+			<tr>
+				<th>Model Name</th>
+				<td><input name="model_name" type="text" /></td>
+			</tr>
+			<tr>
+				<th>12NC</th>
+				<td><input name="nc" type="text" /></td>
+			</tr>
+			<tr>
+				<th>LRRP</th>
+				<td><input name="lrrp" type="text" /></td>
+			</tr>
+		</table>
+		<div style="padding:10px 0;">
+			<button type="button" class="button" onclick="add_chk()">SAVE</button>
+			<button type="button" class="button" onclick="history.go(-1)">CANCEL</button>
+		</div>
+		</form>
+	</div>
+
+
+<div>
+ </body>
+</html>

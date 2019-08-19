@@ -1,0 +1,191 @@
+<? include_once "../common/header_inc.php"; ?>
+<?
+$search_value = trim($_GET["search_value"]);
+$bg_disc = $_GET["bg_disc"];
+$bu_disc = $_GET["bu_disc"];
+$mag_disc = $_GET["mag_disc"];
+$ag_disc = $_GET["ag_disc"];
+
+$sql = "select bg_disc from master_product where bg_disc != '' group by bg_disc order by bg_disc asc";
+$rs = mysql_query($sql,$connect);
+$bg_disc_arr = array();
+while($data = mysql_fetch_array($rs)){
+	$bg_disc_arr[] = $data[bg_disc];
+}
+
+$sql = "select bu_disc from master_product where bu_disc != '' group by bu_disc order by bu_disc asc";
+$rs = mysql_query($sql,$connect);
+$bu_disc_arr = array();
+while($data = mysql_fetch_array($rs)){
+	$bu_disc_arr[] = $data[bu_disc];
+}
+
+$sql = "select mag_disc from master_product where mag_disc != '' group by mag_disc order by mag_disc asc";
+$rs = mysql_query($sql,$connect);
+$mag_disc_arr = array();
+while($data = mysql_fetch_array($rs)){
+	$mag_disc_arr[] = $data[mag_disc];
+}
+
+$sql = "select ag_disc from master_product where ag_disc != '' group by ag_disc order by ag_disc asc";
+$rs = mysql_query($sql,$connect);
+$ag_disc_arr = array();
+while($data = mysql_fetch_array($rs)){
+	$ag_disc_arr[] = $data[ag_disc];
+}
+?>
+<script>
+$(function() {
+	$( ".button" ).button();
+});
+function del(id){
+	var ans = confirm("삭제하시겠습니까?");
+	if(ans == true){
+		del_form.id.value = id;
+		del_form.action = "del_proc.php";
+		del_form.submit();
+	}
+}
+</script>
+<style>
+table td, th { padding:3px; border:1px solid #ccc; }
+th { background-color:#ebebeb; font-weight:bold; }
+</style>
+<body>
+<form name="del_form" method="post">
+	<input name="id" type="hidden" />
+</form>
+
+
+<h1>Manage</h1>
+<h2>Product Master</h2>
+
+<? include_once "../common/menu_inc.php"; ?>
+
+<div style="width:1600px">
+	<div class="container">
+		<form name="search_form" method="get" action="./">
+			<table style="width:1000px;">
+				<tr>
+					<th rowspan="2">검색조건</th>
+					<th>BG Disc</th>
+					<th>BU Disc</th>
+					<th>MAG Disc</th>
+					<th>AG Disc</th>
+					<th>12NC or Model Name</th>
+				</tr>
+				<tr>
+					<td>
+						<select name="bg_disc" style="width:98%;">
+							<option value="" <? if($bg_disc == "") echo "selected"; ?>>Select</option>
+<? for($a = 0; $a < count($bg_disc_arr); $a++){ ?>
+							<option value="<?=$bg_disc_arr[$a]?>" <? if($bg_disc == $bg_disc_arr[$a]) echo "selected"; ?>><?=$bg_disc_arr[$a]?></option>
+<? } ?>
+						</select>
+					</td>
+					<td>
+						<select name="bu_disc" style="width:98%;">
+							<option value="" <? if($bu_disc == "") echo "selected"; ?>>Select</option>
+<? for($a = 0; $a < count($bu_disc_arr); $a++){ ?>
+							<option value="<?=$bu_disc_arr[$a]?>" <? if($bu_disc == $bu_disc_arr[$a]) echo "selected"; ?>><?=$bu_disc_arr[$a]?></option>
+<? } ?>
+						</select>
+					</td>
+					<td>
+						<select name="mag_disc" style="width:98%;">
+							<option value="" <? if($mag_disc == "") echo "selected"; ?>>Select</option>
+<? for($a = 0; $a < count($mag_disc_arr); $a++){ ?>
+							<option value="<?=$mag_disc_arr[$a]?>" <? if($mag_disc == $mag_disc_arr[$a]) echo "selected"; ?>><?=$mag_disc_arr[$a]?></option>
+<? } ?>
+						</select>
+					</td>
+					<td>
+						<select name="ag_disc" style="width:98%;">
+							<option value="" <? if($ag_disc == "") echo "selected"; ?>>Select</option>
+<? for($a = 0; $a < count($ag_disc_arr); $a++){ ?>
+							<option value="<?=$ag_disc_arr[$a]?>" <? if($ag_disc == $ag_disc_arr[$a]) echo "selected"; ?>><?=$ag_disc_arr[$a]?></option>
+<? } ?>
+						</select>
+					</td>
+					<td>
+						<input name="search_value" type="text" value="<?=$search_value?>"  style="width:98%;" />
+					</td>
+				</tr>
+			</table>
+			<div style="padding:10px 0;">
+				<button type="button" class="button" onclick="search_form.submit()">Search</button>
+				<button type="button" class="button" onclick="location.href='add.html'">ADD Model</button>
+				<button type="button" class="button" onclick="location.href='excel.php'">Download Excel</button>
+			</div>
+		</form>
+
+		<table style="width:1000px;">
+			<tr>
+				<th>BG</th>
+				<th>BG_Disc</th>
+				<th>BU</th>
+				<th>BU_Disc</th>
+				<th>MAG</th>
+				<th>MAG_Disc</th>
+				<th>AG</th>
+				<th>AG_Disc</th>
+				<th>Model Name</th>
+				<th>12NC</th>
+				<th>LRRP</th>
+				<th>등록일</th>
+				<th>수정일</th>
+<? if($_SESSION["ss_sec"] == "fwill"){ ?>
+				<th>수정 | 삭제</th>
+<? } ?>
+			</tr>
+<?
+$paging_num_inpage = 50;
+if($page == null) $page=1;	
+$t = $paging_num_inpage * $page - $paging_num_inpage;
+
+if($bg_disc != "") $add_query = " and bg_disc = '$bg_disc' ";
+if($bu_disc != "") $add_query .= " and bu_disc = '$bu_disc' ";
+if($mag_disc != "")	$add_query .= " and mag_disc = '$mag_disc' ";
+if($ag_disc != "") $add_query .= " and ag_disc = '$ag_disc' ";
+
+$page_query = "&bg_disc=".$bg_disc."&bu_disc=".$bu_disc."&mag_disc=".$mag_disc."&ag_disc=".$ag_disc."&search_value=".$search_value;
+
+$sql = "select * from master_product where del != 'Y' and (model_name like '%$search_value%' or nc like '%$search_value%') $add_query order by model_name asc limit $t, $paging_num_inpage";
+$rs = mysql_query($sql,$connect);
+
+$query_getnumber = "select count(idx) from master_product where del != 'Y' and (model_name like '%$search_value%' or nc like '%$search_value%') $add_query";
+$num_record = mysql_result(mysql_query($query_getnumber,$connect),0,0);
+
+while($data = mysql_fetch_array($rs)){
+?>
+			<tr>
+				<td><?=$data[bg]?></td>
+				<td><?=$data[bg_disc]?></td>
+				<td><?=$data[bu]?></td>
+				<td><?=$data[bu_disc]?></td>
+				<td><?=$data[mag]?></td>
+				<td><?=$data[mag_disc]?></td>
+				<td><?=$data[ag]?></td>
+				<td><?=$data[ag_disc]?></td>
+				<td><?=$data[model_name]?></td>
+				<td><?=$data[nc]?></td>
+				<td style="text-align:right;"><?=number_format($data[lrrp])?></td>
+				<td><?=$data[adddate]?></td>
+				<td><? if($data[editdate] != "0000-00-00") echo $data[editdate]; ?></td>
+
+<? if($_SESSION["ss_sec"] == "fwill"){ ?>
+				<td><a href="edit.html?id=<?=$data[idx]?>">수정</a> | <a href="javascript:del('<?=$data[idx]?>')">삭제</a></td>
+<? } ?>
+			</tr>
+<?
+}
+?>
+		</table>
+		<div style="padding:15px;text-align:left;"><?=paging("./",$page_query)?></div>
+	</div>
+
+
+
+<div>
+ </body>
+</html>

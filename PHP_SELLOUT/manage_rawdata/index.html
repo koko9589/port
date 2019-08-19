@@ -1,0 +1,171 @@
+<? include_once "../common/header_inc.php"; ?>
+<?
+$search_value = trim($_GET["search_value"]);
+$search_channel = $_GET["search_channel"];
+$search_account1 = $_GET["search_account1"];
+$search_account2 = $_GET["search_account2"];
+
+
+$sql = "select channel from master_account group by channel order by channel asc";
+$rs = mysql_query($sql,$connect);
+$channel_arr = array();
+while($data = mysql_fetch_array($rs)){
+	$channel_arr[] = $data[channel];
+}
+?>
+<script>
+$(function() {
+	$( ".button" ).button();
+});
+</script>
+<style>
+table td, th { padding:3px; border:1px solid #ccc; }
+th { background-color:#ebebeb; font-weight:bold; }
+</style>
+<body>
+
+<h1>Manage</h1>
+<h2>RawData</h2>
+
+<? include_once "../common/menu_inc.php"; ?>
+
+<form name="del_form" method="post">
+	<input name="id" type="hidden" />
+</form>
+<div style="width:100%">
+	<div class="container">
+		<div style="padding:10px 0;">
+		<form name="search_form" method="get" action="./">
+			<select name="search_channel" style="height:24px;width:150px;">
+				<option value="" <? if($search_channel == "") echo "selected"; ?>>Channel</option>
+<? for($a = 0; $a < count($channel_arr); $a++){ ?>
+				<option value="<?=$channel_arr[$a]?>" <? if($search_channel == $channel_arr[$a]) echo "selected"; ?>><?=$channel_arr[$a]?></option>
+<? } ?>
+			</select>
+			<select name="search_account1" style="height:24px;width:150px;">
+				<option value="" <? if($search_account1 == "") echo "selected"; ?>>Account1</option>
+<?
+$sql = "select account1 from master_account group by account1 order by channel asc, account2 asc, account1 asc";
+$rs = mysql_query($sql,$connect);
+while($data = mysql_fetch_array($rs)){
+?>
+				<option value="<?=$data[account1]?>" <? if($data[account1] == $search_account1) echo "selected"; ?>><?=$data[account1]?></option>
+<?
+}
+?>
+			</select>
+			<select name="search_account2" style="height:24px;width:150px;">
+				<option value="" <? if($search_account1 == "") echo "selected"; ?>>Account2</option>
+<?
+$sql = "select account2 from master_account group by account2 order by channel asc, account2 asc, account1 asc";
+$rs = mysql_query($sql,$connect);
+while($data = mysql_fetch_array($rs)){
+?>
+				<option value="<?=$data[account2]?>" <? if($data[account2] == $search_account2) echo "selected"; ?>><?=$data[account2]?></option>
+<?
+}
+?>
+			</select>
+			<button type="button" class="button" onclick="search_form.submit()">Search</button>
+			<button type="button" class="button" onclick="location.href='upload.html'" style="background-color:#99ccff">Raw data upload</button>
+		</form>
+		</div>
+
+		<table style="width:100%">
+			<tr>
+				<th>Channel</th>
+				<th>Account</th>
+				<th>날짜</th>
+				<th>수량</th>
+				<th>금액</th>
+				<th>파일명</th>
+				<th>등록일</th>
+				<th>보기</th>
+			</tr>
+<?
+$paging_num_inpage = 20;
+if($page == null) $page=1;	
+$t = $paging_num_inpage * $page - $paging_num_inpage;
+
+if($search_channel != ""){
+	$add_query .= " where channel = '$search_channel' ";
+	$sub_add_query .= " and channel = '$search_channel' ";
+}
+if($search_account1 != ""){
+	if($add_query == ""){
+		$add_query .= " where account1 = '$search_account1' ";
+	}else{
+		$add_query .= " and account1 = '$search_account1' ";
+	}
+	$sub_add_query .= " and account1 = '$search_account1' "; 
+}
+if($search_account2 != ""){
+	if($add_query == ""){
+		$add_query .= " where account2 = '$search_account2' ";
+	}else{
+		$add_query .= " and account2 = '$search_account2' ";
+	}
+	$sub_add_query .= " and account2 = '$search_account2' "; 
+}
+
+$page_query = "&search_channel=".$search_channel."&search_account1=".$search_account1."&search_account2=".$search_account2;
+
+$sql = "select times, sum(sale_cnt) as qty, sum(sale_amt) as amt, regdate, file_name from raw_use $add_query group by times order by sale_date desc limit $t, $paging_num_inpage";
+$rs = mysql_query($sql,$connect);
+
+$query_getnumber = "select times from raw_use $add_query group by times";
+$num_record = mysql_num_rows(mysql_query($query_getnumber,$connect));
+
+while($data = mysql_fetch_array($rs)){ 
+	$sql = "select channel from raw_use where times = '".$data['times']."' $sub_add_query group by channel order by channel asc";
+	$sub_rs = mysql_query($sql,$connect);
+	$a = 0;
+	$channel = "";
+	while($sub_data = mysql_fetch_array($sub_rs)){
+		if($a != 0) $channel .= ", ";
+		$channel .= $sub_data[channel];
+		$a++;
+	}
+
+	$sql = "select channel, account1 from raw_use where times = '".$data['times']."' $sub_add_query group by account1 order by account1 asc";
+	$sub_rs = mysql_query($sql,$connect);
+	$a = 0;
+	$account = "";
+	while($sub_data = mysql_fetch_array($sub_rs)){
+		if($a != 0) $account .= ", ";
+		$account .= $sub_data[account1];
+		$a++;
+	}
+
+	$sql = "select sale_date from raw_use where times = '".$data['times']."' $sub_add_query group by sale_date order by sale_date asc";
+	$sub_rs = mysql_query($sql,$connect);
+	$a = 0;
+	$sale_date = "";
+	while($sub_data = mysql_fetch_array($sub_rs)){
+		if($a != 0) $sale_date .= ", ";
+		$sale_date .= $sub_data[sale_date];
+		$a++;
+	}
+?>
+			<tr onmouseover="this.style.backgroundColor='#d7efff'" onmouseout="this.style.backgroundColor=''">
+				<td style="white-space:nowrap;"><?=$channel?></td>
+				<td><?=$account?></td>
+				<td style="letter-spacing:-1px;white-space:nowrap;"><?=$sale_date?></td>
+				<td style="white-space:nowrap;"><?=number_format($data[qty])?></td>
+				<td style="white-space:nowrap;"><?=number_format($data[amt])?></td>
+				<td style="white-space:nowrap;"><?=$data[file_name]?></td>
+				<td style="white-space:nowrap;"><?=$data[regdate]?></td>
+				<td style="white-space:nowrap;"><a href="detail.html?times=<?=$data['times']?>">보기</a></td>
+			</tr>
+<?
+}
+?>
+		</table>
+		<div style="padding:15px;text-align:left;"><?=paging("./",$page_query)?></div>
+	</div>
+
+
+
+<div>
+ </body>
+</html>

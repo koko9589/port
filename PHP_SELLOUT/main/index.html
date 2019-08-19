@@ -1,0 +1,905 @@
+<? include_once "../common/header_inc.php"; ?>
+<?
+$year_arr = $_GET[year_arr];
+if(count($year_arr) == 0){	
+	$year_arr[] = date("Y",strtotime(date("Y-m-d")." -7 days")) - 2;
+	$year_arr[] = date("Y",strtotime(date("Y-m-d")." -7 days")) - 1;
+	$year_arr[] = date("Y",strtotime(date("Y-m-d")." -7 days"));
+}
+
+$last_year = $year_arr[(count($year_arr) - 1)];
+$today = date("Y-m-d",strtotime(date("Y-m-d")." -7 days"));
+
+$select_aq = $_GET[select_aq];
+if($select_aq == "") $select_aq = "amt";
+
+$week1 = $_GET[week1];
+$week2 = $_GET[week2];
+
+if($week2 == ""){
+	$sql = "select week, year, month from conf_week where date1 <= '".$today."' and date2 >= '".$today."'";
+	@$week2 = substr(mysql_result(mysql_query($sql,$connect),0,0),2,2);
+	$tmp_year = mysql_result(mysql_query($sql,$connect),0,1);
+	$tmp_month = mysql_result(mysql_query($sql,$connect),0,2);
+}else{
+	$sql = "select year, month from conf_week where week = '".substr($last_year,2,2).$week2."'";
+	$tmp_year = mysql_result(mysql_query($sql,$connect),0,0);
+	$tmp_month = mysql_result(mysql_query($sql,$connect),0,1);
+}
+
+if($week1 == ""){
+	$sql = "select min(week) from conf_week where year = '".$tmp_year."' and month = '".$tmp_month."'";
+	$week1 = substr(mysql_result(mysql_query($sql,$connect),0,0),2,2);
+}
+
+if($week1 > $week2){
+	echo "<script>alert('기간을 잘못 선택하셨습니다.');history.go(-1)</script>";
+	exit;
+}
+
+//동일 월 확인
+$sql = "select month from conf_week where week = '".substr($last_year,2,2).$week1."'"; //echo $sql."<br>";
+@$month1 = mysql_result(mysql_query($sql,$connect),0,0);
+$sql = "select month from conf_week where week = '".substr($last_year,2,2).$week2."'"; //echo $sql."<br>";
+@$month2 = mysql_result(mysql_query($sql,$connect),0,0);
+//echo $month1." | ".$month2;
+
+$sql = "select * from conf_week where year = '".$last_year."' order by week asc";
+$rs = mysql_query($sql,$connect);
+while($data = mysql_fetch_array($rs)){
+	$month_arr[] = strtoupper(month_eng($data[month]));
+	$week_arr[] = substr($data[week],2,2);
+	$date1_arr[] = str_replace("-","/",substr($data[date1],5,5));
+	$date2_arr[] = str_replace("-","/",substr($data[date2],5,5));
+}
+
+for($y = 0; $y < count($year_arr); $y++){
+	if($y != 0) $add_query .= " or ";
+	
+	$year_week1 = substr($year_arr[$y],2,2).$week1;
+	$year_week2 = substr($year_arr[$y],2,2).$week2;
+	$sql = "select date1 from conf_week where week = '$year_week1'";
+	@$date1 = mysql_result(mysql_query($sql,$connect),0,0);
+	$sql = "select date2 from conf_week where week = '$year_week2'";
+	@$date2 = mysql_result(mysql_query($sql,$connect),0,0);
+
+	for($w = $year_week1; $w <= $year_week2; $w++){
+		$yw_arr[] = $w;
+	}
+	
+	$add_query .= " ( sale_date >= '".$date1."' and sale_date <= '".$date2."' ) ";
+}
+
+// 주별 MTD 기간 계산 
+$sql = "select date2,week from conf_week where week = '".substr($last_year,2,2).$week2."'"; //매출 등록된 주 추출 
+$growth_date2 = mysql_result(mysql_query($sql,$connect),0,0);
+$growth_week2 = mysql_result(mysql_query($sql,$connect),0,1);
+
+$sql = "select date1,week from conf_week where week = '".substr($last_year,2,2).$week1."'"; 
+$growth_date1 = mysql_result(mysql_query($sql,$connect),0,0);
+$growth_week1 = mysql_result(mysql_query($sql,$connect),0,1);
+
+$ly_growth_week1 = $growth_week1 - 100;
+$ly_growth_week2 = $growth_week2 - 100;
+
+$sql = "select date1 from conf_week where week = '$ly_growth_week1'";
+@$ly_growth_date1 = mysql_result(mysql_query($sql,$connect),0,0);
+$sql = "select date2 from conf_week where week = '$ly_growth_week2'";
+@$ly_growth_date2 = mysql_result(mysql_query($sql,$connect),0,0);
+
+if($month1 == $month2){
+//Time gone
+	$time_week_arr = array();
+	$sql = "select week from conf_week where year = '$tmp_year' and month = '$tmp_month' order by week asc";
+	$rs = mysql_query($sql,$connect);
+	$w = 1;
+	while($data = mysql_fetch_array($rs)){
+		$time_week_arr[] = $data[week];
+		if($data[week] == $growth_week2) $this_week_rate = $w;
+		$w++;
+	}
+	$week_rate = round($this_week_rate / mysql_num_rows($rs) * 100);
+}
+?>
+<script>
+$(function() {
+	$( ".select_week, .select_year, .week_all, .select_aq, .select_month" ).checkboxradio({
+      icon: false
+    });
+
+	$( "#search_submit, #excel_submit, #show_search, #hide_search" ).button();
+	$( "#search_submit" ).click( function() {
+		search_form.target = "";
+		search_form.action = "./";
+		search_form.submit();
+	});
+	$( "#excel_submit" ).click( function() {
+		search_form.target = "";
+		search_form.action = "./week_excel.php";
+		search_form.submit();
+	});
+
+	$('#week_all').click(function() {
+		if( $(this).is(":checked") ) {
+			for(var w = 1; w <= 53; w++){
+				$('#week-' + w).prop( "checked", true ).checkboxradio( "refresh" );
+			}
+		}else{
+			for(var w = 1; w <= 53; w++){
+				$('#week-' + w).prop( "checked", false ).checkboxradio( "refresh" );
+			}
+		}
+	});
+
+
+	$('#Amount').click(function() {
+		$(".span_qty").hide();
+		$(".span_amt").show();
+	});
+	$('#Quantity').click(function() {
+		$(".span_qty").show();
+		$(".span_amt").hide();
+	});
+
+	function runEffect() {
+      // get effect type from
+      var selectedEffect = $( "#effectTypes" ).val();
+
+      // Most effect types need no options passed by default
+      var options = {};
+
+      // some effects have required parameters
+      if ( selectedEffect === "scale" ) {
+        options = { percent: 50 };
+      } else if ( selectedEffect === "size" ) {
+        options = { to: { width: 280, height: 185 } };
+      } 
+
+      // Run the effect
+      $( "#search_div" ).show( selectedEffect, options, 500, callback );
+	  $( "#show_search" ).hide();
+	  $( "#hide_search" ).show();
+    }; 
+
+	function hideEffect() {
+      // get effect type from
+      var selectedEffect = $( "#effectTypes" ).val();
+
+      // Most effect types need no options passed by default
+      var options = {};
+
+      // some effects have required parameters
+      if ( selectedEffect === "scale" ) {
+        options = { percent: 50 };
+      } else if ( selectedEffect === "size" ) {
+        options = { to: { width: 280, height: 185 } };
+      } 
+
+      // Run the effect
+      $( "#search_div" ).hide( selectedEffect, options, 500, callback );
+	  $( "#show_search" ).show();
+	  $( "#hide_search" ).hide();
+    }; 
+	function callback() {      
+        //$( "#search_div:visible" ).removeAttr( "style" ).fadeOut();      
+    };
+
+	$( "#show_search" ).on( "click", function() {
+      runEffect();
+    }); 
+    $( "#hide_search" ).on( "click", function() {
+      hideEffect();
+    });
+});
+
+function amt_chk(){
+	$(".span_qty").hide();
+	$(".span_amt").show();
+}
+function qty_chk(){
+	$(".span_qty").show();
+	$(".span_amt").hide();
+}
+
+var month1 = "<?=$month1?>";
+var month2 = "<?=$month2?>";
+if(month1 != month2){
+	alert("선택한 기간의 해당월이 서로 달라서 Target, Growth 자료는 제공하지 않습니다.");
+}
+
+</script>
+<style>
+.select_week {width:100px;}
+.table1 th { padding:3px; border:1px solid #ccc;background-color:#ebebeb; font-weight:bold; }
+.table1 td { padding:3px; border:1px solid #ccc;text-align:right; }
+</style>
+<body>
+<div id="loading" style="position:absolute;top:0;left:0;z-index:1000;width:100%;height:1100px;background-color:#fff;filter:alpha(opacity=50);text-align:center;padding-top:350px;">
+	<img src="../images/loading.gif" />
+</div>
+<form name="del_form" method="post">
+	<input name="id" type="hidden" />
+</form>
+
+<h1>Sell Out</h1>
+<h2>
+	Dash Board &nbsp;&nbsp;
+	<input id="show_search" type="button" value="Show Search Condition" style="padding:2px 10px;border:2px solid #999;font-weight:bold; letter-spacing:0;" />
+	<input id="hide_search" type="button" value="Hide Search Condition" style="padding:2px 10px;border:2px solid #999;font-weight:bold; letter-spacing:0;display:none;" />
+</h2>
+
+<? include_once "../common/menu_inc.php"; ?>
+
+<div style="width:100%">
+	<div class="container">
+		<form name="search_form" method="get" action="./">
+			<input type="hidden" name="effects" id="effectTypes" value="blind" />
+			<div id="search_div" style="margin-bottom:10px;width:85%;min-width:1000px;border:1px solid #ccc;border-radius:10px;padding:14px;display:none;">
+				<div style="width:100%;margin-top:5px;">
+<? for($y = 2017; $y <= date("Y"); $y++){ ?>
+					<label for="year-<?=$y?>"><?=$y?></label>
+					<input type="checkbox" name="year_arr[]" id="year-<?=$y?>" class="select_year" value="<?=$y?>" <? if(in_array($y,$year_arr)) echo "checked='checked'"; ?> />	
+<? } ?>				
+					&nbsp;&nbsp;
+					<!--<label for="Amount" style="font-weight:bold;">Amount</label>
+					<input type="radio" name="select_aq" id="Amount" class="select_aq" value="amt" <? if($select_aq == "amt") echo "checked='checked'"; ?> />		
+					<label for="Quantity" style="font-weight:bold;">Quantity</label>
+					<input type="radio" name="select_aq" id="Quantity" class="select_aq" value="qty" <? if($select_aq == "qty") echo "checked='checked'"; ?> />	-->
+					<select name="week1" style="padding:0 10px;width:230px;height:26px;font-weight:bold;border:2px solid #999;border-radius:5px;">
+<? for($w = 0; $w < count($week_arr); $w++){ ?>
+						<option value="<?=$week_arr[$w]?>" <? if($week_arr[$w] == $week1) echo "selected"; ?>>W<?=$week_arr[$w]?> : <?=$date1_arr[$w]?> ~ <?=$date2_arr[$w]?> (<?=$month_arr[$w]?>)</option>
+<? } ?>
+					</select>
+					~
+					<select name="week2" style="padding:0 10px;width:230px;height:26px;font-weight:bold;border:2px solid #999;border-radius:5px;">
+<? for($w = 0; $w < count($week_arr); $w++){ ?>
+						<option value="<?=$week_arr[$w]?>" <? if($week_arr[$w] == $week2) echo "selected"; ?>>W<?=$week_arr[$w]?> : <?=$date1_arr[$w]?> ~ <?=$date2_arr[$w]?> (<?=$month_arr[$w]?>)</option>
+<? } ?>
+					</select>
+					&nbsp;&nbsp;
+					<input type="button" name="search_submit" id="search_submit" value="SEARCH" style="border:2px solid #999;font-weight:bold;padding:5px 30px;letter-spacing:2px;" />
+					<!--<input type="button" name="excel_submit" id="excel_submit" value="DOWNLOAD EXCEL" style="border:2px solid #999;font-weight:bold;padding:5px 30px;letter-spacing:2px;" />-->
+				</div>
+			</div>
+		</form>
+
+
+
+
+
+
+<?
+//채널 년도별 매출
+$sql = "select channel, sale_week_year, sum(sale_amt) as amt from raw_use where $add_query group by channel, sale_week_year";
+$rs = mysql_query($sql,$connect);
+while($data = mysql_fetch_array($rs)){
+	$channel = $data[channel];
+	$year = $data[sale_week_year];
+	$qty = $data[qty];
+	$amt = $data[amt];
+	$channel_qty_arr[$year][$channel] = $qty;
+	$channel_amt_arr[$year][$channel] = $amt;
+}
+
+$rank_cate_arr = array();
+//카테고리 년도별 매출
+$sql = "select bu_disc, sale_week_year, sum(sale_amt) as amt from raw_use where $add_query group by bu_disc, sale_week_year order by amt desc";
+$rs = mysql_query($sql,$connect);
+while($data = mysql_fetch_array($rs)){
+	$bu_disc = $data[bu_disc];
+	$year = $data[sale_week_year];
+	$qty = $data[qty];
+	$amt = $data[amt];
+	$category_qty_arr[$year][$bu_disc] = $qty;
+	$category_amt_arr[$year][$bu_disc] = $amt;
+
+	if($year == $year_arr[(count($year_arr) - 1)]){
+		$rank_cate_arr[] = $bu_disc;
+		$rank_cate_amt_arr[$bu_disc] = $amt;
+	}
+}
+
+if($month1 == $month2){
+
+	//채널 성장률, 타겟
+	$sql = "select channel, sum(sale_amt) as amt from raw_use where sale_date >= '$growth_date1' and sale_date <= '$growth_date2' group by channel"; //echo $sql."<br>";
+	$rs = mysql_query($sql,$connect);
+	while($data = mysql_fetch_array($rs)){
+		$channel = $data[channel];
+		$channel = $short_channel_conv[$channel];
+		$growth_channel_amt1[$channel] = $data[amt]; //echo $s_year." ".$channel." ".$data[amt]."<br>";
+
+		$growth_amt1 = $growth_amt1 + $data[amt];
+	}
+
+	$sql = "select channel, sum(sale_amt) as amt from raw_use where sale_date >= '$ly_growth_date1' and sale_date <= '$ly_growth_date2' group by channel"; //echo $sql."<br>";
+	$rs = mysql_query($sql,$connect);
+	while($data = mysql_fetch_array($rs)){
+		$channel = $data[channel];
+		$channel = $short_channel_conv[$channel];
+		$growth_channel_amt2[$channel] = $data[amt]; //echo ($s_year - 1)." ".$channel." ".$data[amt]."<br>";
+
+		$growth_amt2 = $growth_amt2 + $data[amt];
+	}
+
+	for($c = 0; $c < count($short_channel_arr); $c++){
+		$channel_gr[$short_channel_arr[$c]] = gr_graph($growth_channel_amt2[$short_channel_arr[$c]],$growth_channel_amt1[$short_channel_arr[$c]]);
+	}
+
+	$sql = "select channel, target from target_channel where year = '$tmp_year' and month = '$tmp_month'";
+	$rs = mysql_query($sql,$connect);
+	while($data = mysql_fetch_array($rs)){
+		$channel = $data[channel];
+		$channel_target[$channel] = $data[target];
+	}
+
+	//카테고리 성장률, 타겟
+	$sql = "select category, target from target_category where year = '$tmp_year' and month = '$tmp_month'";
+	$rs = mysql_query($sql,$connect);
+	while($data = mysql_fetch_array($rs)){
+		$category = $data[category];
+		$category_target[$category] = $data[target];
+		$cate_arr[] = $category;
+	}
+
+	$sql = "select bu_disc, sum(sale_amt) as amt from raw_use where sale_date >= '$growth_date1' and sale_date <= '$growth_date2' group by bu_disc"; //echo $sql."<br>";
+	$rs = mysql_query($sql,$connect);
+	while($data = mysql_fetch_array($rs)){
+		$category = $data[bu_disc];
+		$growth_category_amt1[$category] = $data[amt]; //echo $s_year." ".$category." ".$data[amt]."<br>";
+	}
+
+	$sql = "select bu_disc, sum(sale_amt) as amt from raw_use where sale_date >= '$ly_growth_date1' and sale_date <= '$ly_growth_date2' group by bu_disc"; //echo $sql."<br>";
+	$rs = mysql_query($sql,$connect);
+	while($data = mysql_fetch_array($rs)){
+		$category = $data[bu_disc];
+		$growth_category_amt2[$category] = $data[amt]; //echo ($s_year - 1)." ".$category." ".$data[amt]."<br>";
+	}
+
+	for($c = 0; $c < count($basic_bu_arr); $c++){
+		if(@in_array($basic_bu_arr[$c],$cate_arr)){
+			@$category_gr[$basic_bu_arr[$c]] = @gr_graph($growth_category_amt2[$basic_bu_arr[$c]],$growth_category_amt1[$basic_bu_arr[$c]]);
+			@$bu_arr[] = $basic_bu_arr[$c];
+		}
+	}
+
+	//MTD 성장률
+	//echo $growth_amt2."<br>";
+	//echo $growth_amt1."<br>";
+	$MTD_growth = gr_graph($growth_amt2,$growth_amt1); //echo $MTD_growth;
+	$sql = "select target from target_all where year = '$tmp_year' and month = '$tmp_month'";
+	@$target_all = mysql_result(mysql_query($sql,$connect),0,0);
+
+	if($target_all >= $MTD_growth) $height_growth = $target_all;
+	else $height_growth = $MTD_growth;
+}
+
+//년도별 매출
+for($y = 0; $y < count($year_arr); $y++){ 
+	@$amt_arr[$year_arr[$y]] = array_sum($channel_amt_arr[$year_arr[$y]]);
+}
+$max_year_amt = max($amt_arr);
+
+//color
+$color_arr = array();
+$color_arr[] = "003399";
+$color_arr[] = "ffcc00";
+$color_arr[] = "00b050";
+
+//Champion
+$sql = "select champion, sum(sale_amt) as amt from raw_use where sale_date >= '$growth_date1' and sale_date <= '$growth_date2' group by champion order by amt desc";
+$rs = mysql_query($sql,$connect);
+while($data = mysql_fetch_array($rs)){
+	$champion = $data[champion];
+	if($champion == "") $champion = "Others";
+	$champ_arr[] = $champion;
+	$champ_amt_arr[$champion] = $data[amt];
+}
+?>
+
+<script src="../Highcharts/js/highcharts.js"></script>
+<script src="../Highcharts/js/modules/exporting.js"></script>
+<script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+
+
+<script>
+$(function () {
+	$('#channel').highcharts({
+			colors: ['#0033cc', '#ffcc00', '#00b050'],
+		    chart: {
+                type: 'column'
+            },
+            title: {
+                text: 'Sell-out by Channel (Mil KRW)'
+            },
+            subtitle: {
+                text: ''
+            },
+            xAxis: {
+                categories: [
+<? 
+for($c = 0; $c < count($basic_channel_arr); $c++){ 
+?>
+<?	if($c != 0) echo ","	?>
+                    '<?=$short_name_channel_conv[$basic_channel_arr[$c]]?>'
+<? 
+} 
+?>        
+                ]
+            },
+            yAxis: {
+                min: 0,
+                title: {
+                    text: ''
+                },
+                labels: {
+                    formatter: function () {
+						return Highcharts.numberFormat(this.value,0,'',',');
+					},
+                }
+            },
+            tooltip: {
+                shared: true,
+                useHTML: true
+            },
+            plotOptions: {
+                column: {
+                    pointPadding: 0,
+                    borderWidth: 0
+                },
+				 series: {
+					borderWidth: 0,
+					dataLabels: {
+						enabled: true,
+						format: '{point.y}',
+						style:{
+							fontSize:11,
+							fontWeight:'normal'
+						}
+					}
+
+				}
+            },
+            series: [
+
+<?
+for($y = 0; $y < count($year_arr); $y++){ 
+	if($y != 0) echo ",";
+?>	
+			{
+                name: '<?=$year_arr[$y]?>',
+                data: [<? for($c = 0; $c < count($basic_channel_arr); $c++){ if($c != 0){ echo ","; } echo round($channel_amt_arr[$year_arr[$y]][$basic_channel_arr[$c]]/1000000); } ?> ]
+            }
+<?
+}
+?>
+
+			]
+        });
+
+
+	$('#category').highcharts({
+			colors: ['#0033cc', '#ffcc00', '#00b050'],
+            chart: {
+                type: 'column'
+            },
+            title: {
+                text: 'Sell-out by Category (Mil KRW)'
+            },
+            subtitle: {
+                text: ''
+            },
+            xAxis: {
+                categories: [
+<? 
+for($c = 0; $c < count($basic_bu_arr); $c++){ 
+?>
+<?	if($c != 0) echo ","	?>
+                    '<?=$basic_bu_arr[$c]?>'
+<? 
+} 
+?>        
+                ]
+            },
+            yAxis: {
+                min: 0,
+                title: {
+                    text: ''
+                },
+                labels: {
+                    formatter: function () {
+						return Highcharts.numberFormat(this.value,0,'',',');
+					},
+                }
+            },
+            tooltip: {
+                shared: true,
+                useHTML: true
+            },
+            plotOptions: {
+                column: {
+                    pointPadding: 0,
+                    borderWidth: 0
+                },
+				 series: {
+					borderWidth: 0,
+					dataLabels: {
+						enabled: true,
+						format: '{point.y}',
+						style:{
+							fontSize:11,
+							fontWeight:'normal'
+						}
+					}
+				}
+            },
+            series: [
+
+<?
+for($y = 0; $y < count($year_arr); $y++){ 
+	if($y != 0) echo ",";
+?>	
+			{
+                name: '<?=$year_arr[$y]?>',
+                data: [<? for($c = 0; $c < count($basic_bu_arr); $c++){ if($c != 0){ echo ","; } echo round($category_amt_arr[$year_arr[$y]][$basic_bu_arr[$c]]/1000000); } ?> ]
+    
+            }
+<?
+}
+?>
+
+			]
+        });
+
+<? if($month1 == $month2){ ?>
+	Highcharts.chart('growth1', {
+		colors: ['#cc0000', '#00b050'],
+		chart: {
+			type: 'column'
+		},
+		title: {
+			text: 'Target vs. Actual by Channel'
+		},
+		xAxis: {
+			categories: [<? for($c = 0; $c < count($short_channel_arr); $c++){ if($c != 0) echo ","; echo "'".$short_name_channel_conv[$short_channel_arr[$c]]."'"; } ?>]
+		},
+        yAxis: {
+			title: {
+				text: ''
+            },
+                labels: {
+                    formatter: function () {
+						return Highcharts.numberFormat(this.value,0,'',',');
+					},
+                }
+        },
+		credits: {
+			enabled: false
+		},
+        plotOptions: {
+			column: {
+				pointPadding: 0,
+				borderWidth: 0
+            },
+			series: {
+				borderWidth: 0,
+				dataLabels: {
+					enabled: true,
+					format: '{point.y}%',
+					style:{
+						fontSize:11,
+						fontWeight:'normal'
+					}
+				}
+			}
+        },
+		series: [{
+			name: '<?=month_eng($s_month)?> Target',
+			data: [<? for($c = 0; $c < count($short_channel_arr); $c++){ if($c != 0) echo ","; echo $channel_target[$short_channel_arr[$c]]; } ?>]
+		}, {
+			name: 'Growth',
+			data: [<? for($c = 0; $c < count($short_channel_arr); $c++){ if($c != 0) echo ","; echo $channel_gr[$short_channel_arr[$c]]; } ?>]
+		}]
+	});
+
+	Highcharts.chart('growth2', {
+		colors: ['#cc0000', '#00b050'],
+		chart: {
+			type: 'column'
+		},
+		title: {
+			text: 'Target vs. Actual by Category'
+		},
+		xAxis: {
+			categories: [<? for($c = 0; $c < count($bu_arr); $c++){ if($c != 0) echo ","; echo "'".$bu_arr[$c]."'"; } ?>]
+		},
+        yAxis: {
+			title: {
+				text: ''
+            },
+                labels: {
+                    formatter: function () {
+						return Highcharts.numberFormat(this.value,0,'',',');
+					},
+                }
+        },
+		credits: {
+			enabled: false
+		},
+        plotOptions: {
+			column: {
+				pointPadding: 0,
+				borderWidth: 0
+            },
+			series: {
+				borderWidth: 0,
+				dataLabels: {
+					enabled: true,
+					format: '{point.y}%',
+					style:{
+						fontSize:11,
+						fontWeight:'normal'
+					}
+				}
+			}
+        },
+		series: [{
+			name: '<?=month_eng($s_month)?> Target',
+			data: [<? for($c = 0; $c < count($bu_arr); $c++){ if($c != 0) echo ","; echo $category_target[$bu_arr[$c]]; } ?>]
+		}, {
+			name: 'Growth',
+			data: [<? for($c = 0; $c < count($bu_arr); $c++){ if($c != 0) echo ","; echo $category_gr[$bu_arr[$c]]; } ?>]
+		}]
+	});
+
+	Highcharts.setOptions({
+		lang: {
+			thousandsSep: ','
+		}
+	});
+
+/* Time gone start */
+	google.charts.load('current', {'packages':['corechart']});
+    google.charts.setOnLoadCallback(week_chart);
+
+      function week_chart() {
+
+        var data = google.visualization.arrayToDataTable([
+          ['Week', 'Week'],
+<? for($w = 0; $w < count($time_week_arr); $w++){ ?>
+          ['W<?=substr($time_week_arr[$w],2,2)?>',     1],
+<? } ?>
+        ]);
+
+        var options = {
+          title: '',
+		  titleTextStyle:{color:'#fff',fontSize:14},
+          pieHole: 0.4,
+          pieSliceTextStyle: {
+            color: 'black',
+          },
+          pieSliceText: 'label',
+          legend: 'none',
+          backgroundColor: '#44546a',
+          pieSliceBorderColor: '#44546a',
+          chartArea:{left:'10%',top:'12%',width:'80%',height:'75%'},
+          fontSize:11,
+          colors: [<? for($w = 0; $w < count($time_week_arr); $w++){ if($time_week_arr[$w] <= $growth_week2){ echo "'#92d050',"; }else{ echo "'#ccc',"; } } ?>],
+		  tooltip: {
+		    trigger: 'none'
+		  }
+        };
+        
+        var chart = new google.visualization.PieChart(document.getElementById('week_chart'));
+        chart.draw(data, options);
+      }	  
+/* Time gone end */
+<? } ?>
+
+/* Category rate start */
+	  google.charts.load('current', {'packages':['corechart']});
+      google.charts.setOnLoadCallback(drawChart);
+
+      function drawChart() {
+
+        var data = google.visualization.arrayToDataTable([
+          ['Cate', 'Number'],
+<?
+	for($c = 0; $c < count($rank_cate_arr); $c++){
+		if($c != 0){ 
+			echo ",";
+		}
+?>
+          ['<?=$rank_cate_arr[$c]?>',<?=round($rank_cate_amt_arr[$rank_cate_arr[$c]]/1000000)?>]
+<?
+    }
+?>
+        ]);
+
+        var options = {
+          title: '',
+		  legend: {
+			  position:'bottom',
+			  textStyle:{
+				color: '#fff'
+			  }
+		  },
+		  chartArea:{left:'10%',top:'0%',width:'80%',height:'90%'},
+          fontSize:11,
+          backgroundColor: '#44546a',
+		  is3D: true,
+        };
+
+        var chart = new google.visualization.PieChart(document.getElementById('cate_chart'));
+
+        chart.draw(data, options);
+      }
+/* Category rate end */
+
+/* Champion rate start */
+	  google.charts.load('current', {'packages':['corechart']});
+      google.charts.setOnLoadCallback(championChart);
+
+      function championChart() {
+
+        var data = google.visualization.arrayToDataTable([
+          ['champion', 'Number'],
+<?
+	for($c = 0; $c < count($champ_arr); $c++){
+		if($c != 0){ 
+			echo ",";
+		}
+?>
+          ['<?=$champ_arr[$c]?>',<?=round($champ_amt_arr[$champ_arr[$c]]/1000000)?>]
+<?
+    }
+?>
+        ]);
+
+        var options = {
+          title: '',
+		  legend: {
+			  position:'bottom',
+			  textStyle:{
+				color: '#fff'
+			  }
+		  },
+		  chartArea:{left:'10%',top:'0%',width:'80%',height:'90%'},
+          fontSize:11,
+          backgroundColor: '#44546a',
+		  is3D: true,
+        };
+
+        var chart = new google.visualization.PieChart(document.getElementById('champion_chart'));
+
+        chart.draw(data, options);
+      }
+/* Champion rate end */
+});
+</script>
+<table style="width:95%;height:210px;background-color:#44546a">
+	<colgroup>
+		<col width="20%" />
+		<col width="2%" />
+		<col width="20%" />
+		<col width="2%" />
+		<col width="20%" />
+		<col width="2%" />
+		<col width="20%" />
+		<col width="2%" />
+		<col width="20%" />
+	</colgroup>
+	<tr>
+<? if($month1 == $month2){ ?>
+		<td style="text-align:center;color:#fff;font-size:14px;font-weight:bold;"><br />Time-gone <?=$week_rate?>%<br /><div id="week_chart" style="margin:0 auto;width: 180px; height: 180px;"></div></td>
+		<td style="text-align:center;"><img src="../images/cut.jpg" /></td>
+		<td style="text-align:center;" valign="bottom">
+
+			<table style="margin:0 auto;margin-bottom:10px;">
+				<tr>
+					<td valign="bottom"><div style="font-size:12px;color:#fff;text-align:center;"><?=$target_all?>%</div><div style="margin:0 auto;border-radius: 5px;width:50px;background-color:#cc0000;height:<?=round(130*$target_all/$height_growth)?>px"></div></td>
+					<td style="width:14px;"></td>
+					<td valign="bottom"><div style="font-size:12px;color:#fff;text-align:center;"><?=$MTD_growth?>%</div><div style="margin:0 auto;border-radius: 5px;width:50px;background-color:#00b050;height:<?=round(130*$MTD_growth/$height_growth)?>px"></div></td>
+				</tr>
+				<tr>
+					<td style="height:30px;color:#fff;font-weight:bold;"><span style="color:#cc0000">■</span> Target</td>
+					<td></td>
+					<td style="height:30px;color:#fff;font-weight:bold;"><span style="color:#00b050">■</span> Actual</td>
+				</tr>
+			</table>			
+
+		</td>
+		<td style="text-align:center;"><img src="../images/cut.jpg" /></td>
+<? } ?>
+		<td style="text-align:center;" valign="bottom">
+			<table style="margin:0 auto;margin-bottom:10px;">
+				<tr>
+					<td colspan="<?=(count($year_arr) * 2) - 1?>" valign="top" style="height:30px;text-align:right;color:#fff;font-size:10px;">Mil KRW</td>
+				</tr>
+				<tr>
+<? for($y = 0; $y < count($year_arr); $y++){ ?>
+<?	if($y != 0){ ?>
+					<td style="width:14px;"></td>
+<?	} ?>
+					<td valign="bottom"><div style="font-size:12px;color:#fff;text-align:center;"><?=number_mil($amt_arr[$year_arr[$y]])?></div><div style="margin:0 auto;border-radius: 5px;width:50px;background-color:#<?=$color_arr[$y]?>;height:<?=round(110*$amt_arr[$year_arr[$y]]/$max_year_amt)?>px"></div></td>
+<? } ?>
+				</tr>
+				<tr>
+<? for($y = 0; $y < count($year_arr); $y++){ ?>
+<?	if($y != 0){ ?>
+					<td style="width:14px;"></td>
+<?	} ?>
+					<td style="height:30px;color:#fff;font-weight:bold;"><span style="color:#<?=$color_arr[$y]?>">■</span> <?=$year_arr[$y]?></td>
+<? } ?>
+				</tr>
+			</table>
+		</td>
+		<td style="text-align:center;"><img src="../images/cut.jpg" /></td>
+<?
+if($month1 == $month2){
+	$width1 = "500";
+	$width2 = "350";
+}else{
+	$width1 = "700";
+	$width2 = "450";
+}
+?>
+		<td><div style="margin:0 auto;width:300px;text-align:right;color:#fff;font-size:10px;">Mil KRW</div><div id="cate_chart" style="margin:0 auto;width: <?=$width1?>px; height: 180px;"></div></td>
+		<td style="text-align:center;"><img src="../images/cut.jpg" /></td>
+		<td><div style="margin:0 auto;width:300px;text-align:right;color:#fff;font-size:10px;">Mil KRW</div><div id="champion_chart" style="margin:0 auto;width: <?=$width2?>px; height: 180px;"></div></td>
+		<td></td>
+		<td></td>
+		<td></td>
+	</tr>
+</table>
+<?
+if($month1 == $month2) $height = "250";
+else $height = "400";
+?>
+<table style="width:95%;margin-top:30px;">
+<tr>
+<td width="2%"></td>
+<td width="47%">
+	<div id="channel" style="min-width: 310px; height: <?=$height?>px; margin: 0 auto"></div>
+</td>
+<td width="1%" style="border-right:1px dashed #ccc;"></td>
+<td width="1%"></td>
+<td width="47%">
+	<div id="category" style="min-width: 310px; height: <?=$height?>px; margin: 0 auto"></div>
+</td>
+<td width="2%"></td>
+</tr>
+<? if($month1 == $month2){ ?>
+<tr><td colspan="5" height="25" style="border-bottom:1px dashed #ccc;"></td></tr>
+<tr><td colspan="5" height="25"></td></tr>
+<tr>
+<td width="2%"></td>
+<td>
+	<div id="growth1" style="min-width: 310px; height: 250px; margin: 0 auto"></div>
+</td>
+<td width="1%" style="border-right:1px dashed #ccc;"></td>
+<td width="1%"></td>
+<td>
+	<div id="growth2" style="min-width: 310px; height: 250px; margin: 0 auto"></div>
+</td>
+<td width="2%"></td>
+</tr>
+<? } ?>
+</table>
+
+
+	</div>
+
+
+<div>
+
+<script>
+document.getElementById("loading").style.display = "none";
+<? if($select_aq == "amt"){ ?>
+amt_chk();
+<? }else{ ?>
+qty_chk();
+<? } ?>
+</script>
+ </body>
+</html>

@@ -1,0 +1,410 @@
+<? include_once "../common/header_inc.php"; ?>
+<?
+$year_arr = $_GET[year_arr];
+if(count($year_arr) == 0){
+	$year_arr[] = date("Y");
+}
+
+$last_year = $year_arr[(count($year_arr) - 1)];
+$today = date("Y-m-d",strtotime(date("Y-m-d")." -7 days"));
+
+$select_aq = $_GET[select_aq];
+if($select_aq == "") $select_aq = "amt";
+
+$week1 = $_GET[week1];
+if($week1 == ""){
+	$week1 = "01";
+}
+$week2 = $_GET[week2];
+if($week2 == ""){
+	$sql = "select week from conf_week where date1 <= '".$today."' and date2 >= '".$today."'";
+	@$week2 = substr(mysql_result(mysql_query($sql,$connect),0,0),2,2);
+}
+
+$sql = "select * from conf_week where year = '".$last_year."' order by week asc";
+$rs = mysql_query($sql,$connect);
+while($data = mysql_fetch_array($rs)){
+	$week_arr[] = substr($data[week],2,2);
+	$date1_arr[] = str_replace("-","/",substr($data[date1],5,5));
+	$date2_arr[] = str_replace("-","/",substr($data[date2],5,5));
+}
+
+for($y = 0; $y < count($year_arr); $y++){
+	if($y != 0) $add_query .= " or ";
+	
+	$year_week1 = substr($year_arr[$y],2,2).$week1;
+	$year_week2 = substr($year_arr[$y],2,2).$week2;
+	$sql = "select date1 from conf_week where week = '$year_week1'";
+	@$date1 = mysql_result(mysql_query($sql,$connect),0,0);
+	$sql = "select date2 from conf_week where week = '$year_week2'";
+	@$date2 = mysql_result(mysql_query($sql,$connect),0,0);
+
+	for($w = $year_week1; $w <= $year_week2; $w++){
+		$yw_arr[] = $w;
+	}
+	
+	$add_query .= " ( sale_date >= '".$date1."' and sale_date <= '".$date2."' ) ";
+}
+?>
+<script>
+$(function() {
+	$( ".select_week, .select_year, .week_all, .select_aq" ).checkboxradio({
+      icon: false
+    });
+
+	$( "#search_submit, #excel_submit, #show_search, #hide_search" ).button();
+	$( "#search_submit" ).click( function() {
+		search_form.target = "";
+		search_form.action = "./";
+		search_form.submit();
+	});
+	$( "#excel_submit" ).click( function() {
+		search_form.target = "";
+		search_form.action = "./week_excel.php";
+		search_form.submit();
+	});
+
+	$('#week_all').click(function() {
+		if( $(this).is(":checked") ) {
+			for(var w = 1; w <= 53; w++){
+				$('#week-' + w).prop( "checked", true ).checkboxradio( "refresh" );
+			}
+		}else{
+			for(var w = 1; w <= 53; w++){
+				$('#week-' + w).prop( "checked", false ).checkboxradio( "refresh" );
+			}
+		}
+	});
+
+
+	$('#Amount').click(function() {
+		$(".span_qty").hide();
+		$(".span_amt").show();
+	});
+	$('#Quantity').click(function() {
+		$(".span_qty").show();
+		$(".span_amt").hide();
+	});
+
+	function runEffect() {
+      // get effect type from
+      var selectedEffect = $( "#effectTypes" ).val();
+
+      // Most effect types need no options passed by default
+      var options = {};
+
+      // some effects have required parameters
+      if ( selectedEffect === "scale" ) {
+        options = { percent: 50 };
+      } else if ( selectedEffect === "size" ) {
+        options = { to: { width: 280, height: 185 } };
+      } 
+
+      // Run the effect
+      $( "#search_div" ).show( selectedEffect, options, 500, callback );
+	  $( "#show_search" ).hide();
+	  $( "#hide_search" ).show();
+    }; 
+
+	function hideEffect() {
+      // get effect type from
+      var selectedEffect = $( "#effectTypes" ).val();
+
+      // Most effect types need no options passed by default
+      var options = {};
+
+      // some effects have required parameters
+      if ( selectedEffect === "scale" ) {
+        options = { percent: 50 };
+      } else if ( selectedEffect === "size" ) {
+        options = { to: { width: 280, height: 185 } };
+      } 
+
+      // Run the effect
+      $( "#search_div" ).hide( selectedEffect, options, 500, callback );
+	  $( "#show_search" ).show();
+	  $( "#hide_search" ).hide();
+    }; 
+	function callback() {      
+        //$( "#search_div:visible" ).removeAttr( "style" ).fadeOut();      
+    };
+
+	$( "#show_search" ).on( "click", function() {
+      runEffect();
+    }); 
+    $( "#hide_search" ).on( "click", function() {
+      hideEffect();
+    });
+});
+
+function amt_chk(){
+	$(".span_qty").hide();
+	$(".span_amt").show();
+}
+function qty_chk(){
+	$(".span_qty").show();
+	$(".span_amt").hide();
+}
+
+
+var val2_cnt = new Array();
+
+function step01(val1, cnt){
+	var basic = document.getElementById("tr_" + val1 + "_1");
+	var basic_style = basic.style.display;
+	for(i = 1; i <= cnt; i++){
+		var tmp = document.getElementById("tr_" + val1 + "_" + i);
+		if(basic_style == "none"){
+			document.getElementById("img_" + val1).src = "../images/tree_minus.gif";
+			tmp.style.display = "";
+		}else{
+			document.getElementById("img_" + val1).src = "../images/tree_plus.gif";
+			tmp.style.display = "none";
+			for(t = 1; t <= val2_cnt[val1 + "_" + i]; t++){
+				document.getElementById("img_" + val1 + "_" + i).src = "../images/tree_plus.gif";
+				var tmp2 = document.getElementById("tr_" + val1 + "_" + i + "_" + t);
+				tmp2.style.display = "none";
+			}
+		}
+	}
+}
+
+function step02(val1, val2, cnt){
+	var basic = document.getElementById("tr_" + val1 + "_" + val2 + "_1");
+	var basic_style = basic.style.display;
+	for(i = 1; i <= cnt; i++){
+		var tmp = document.getElementById("tr_" + val1 + "_" + val2 + "_" + i);
+		if(basic_style == "none"){
+			document.getElementById("img_" + val1 + "_" + val2).src = "../images/tree_minus.gif";
+			tmp.style.display = "";
+		}else{
+			document.getElementById("img_" + val1 + "_" + val2).src = "../images/tree_plus.gif";
+			tmp.style.display = "none";
+		}
+	}
+}
+</script>
+<style>
+table td, th { padding:3px; border:1px solid #ccc; }
+th { background-color:#ebebeb; font-weight:bold; }
+.select_week {width:100px;}
+</style>
+<body>
+<div id="loading" style="position:absolute;top:0;left:0;z-index:1000;width:100%;height:1100px;background-color:#fff;filter:alpha(opacity=50);text-align:center;padding-top:350px;">
+	<img src="../images/loading.gif" />
+</div>
+<form name="del_form" method="post">
+	<input name="id" type="hidden" />
+</form>
+
+<h1>Sell Out</h1>
+<h2>
+	All Account - Weekly &nbsp;&nbsp;
+	<input id="show_search" type="button" value="Show Search Condition" style="padding:2px 10px;border:2px solid #999;font-weight:bold; letter-spacing:0;" />
+	<input id="hide_search" type="button" value="Hide Search Condition" style="padding:2px 10px;border:2px solid #999;font-weight:bold; letter-spacing:0;display:none;" />
+	<input type="button" name="excel_submit" id="excel_submit" value="DOWNLOAD EXCEL" style="padding:2px 10px;border:2px solid #999;font-weight:bold; letter-spacing:0;" />
+</h2>
+
+<? include_once "../common/menu_inc.php"; ?>
+
+<div style="width:100%">
+	<div class="container">
+		<form name="search_form" method="get" action="./">
+			<input type="hidden" name="effects" id="effectTypes" value="blind" />
+			<div id="search_div" style="margin-bottom:10px;width:85%;min-width:1000px;border:1px solid #ccc;border-radius:10px;padding:14px;display:none;">
+				<div style="width:100%;">
+					<label for="Amount" style="font-weight:bold;">Amount</label>
+					<input type="radio" name="select_aq" id="Amount" class="select_aq" value="amt" <? if($select_aq == "amt") echo "checked='checked'"; ?> />		
+					<label for="Quantity" style="font-weight:bold;">Quantity</label>
+					<input type="radio" name="select_aq" id="Quantity" class="select_aq" value="qty" <? if($select_aq == "qty") echo "checked='checked'"; ?> />	
+					&nbsp;&nbsp;&nbsp;&nbsp;
+<? for($y = 2017; $y <= date("Y"); $y++){ ?>
+					<label for="year-<?=$y?>"><?=$y?></label>
+					<input type="checkbox" name="year_arr[]" id="year-<?=$y?>" class="select_year" value="<?=$y?>" <? if(in_array($y,$year_arr)) echo "checked='checked'"; ?> />	
+<? } ?>				
+					&nbsp;&nbsp;
+					<select name="week1" style="padding:0 10px;width:200px;height:26px;font-weight:bold;border:2px solid #999;border-radius:5px;">
+<? for($w = 0; $w < count($week_arr); $w++){ ?>
+						<option value="<?=$week_arr[$w]?>" <? if($week_arr[$w] == $week1) echo "selected"; ?>>W<?=$week_arr[$w]?> : <?=$date1_arr[$w]?> ~ <?=$date2_arr[$w]?></option>
+<? } ?>
+					</select>
+					~
+					<select name="week2" style="padding:0 10px;width:200px;height:26px;font-weight:bold;border:2px solid #999;border-radius:5px;">
+<? for($w = 0; $w < count($week_arr); $w++){ ?>
+						<option value="<?=$week_arr[$w]?>" <? if($week_arr[$w] == $week2) echo "selected"; ?>>W<?=$week_arr[$w]?> : <?=$date1_arr[$w]?> ~ <?=$date2_arr[$w]?></option>
+<? } ?>
+					</select>
+					&nbsp;&nbsp;
+				<!--</div>
+				<div style="margin:10px;text-align:center;">-->
+					<input type="button" name="search_submit" id="search_submit" value="SEARCH" style="border:2px solid #999;font-weight:bold;padding:5px 30px;letter-spacing:2px;" />
+					
+				</div>
+			</div>
+		</form>
+
+
+
+
+<div style="padding:5px 0; font-size:11px;">
+Amount : 1,000,000 KRW, Quantity : 1 EA
+</div>
+
+<table class="table1">
+	<colgroup>
+		<col width="60" />
+		<col width="60" />
+		<col width="130" />
+<? 
+for($yw = 0; $yw < count($yw_arr); $yw++){
+?>
+		<col width="50" />
+<?
+}
+?>
+	</colgroup>
+	<thead>
+		<tr>
+			<th rowspan="2">Channel</th><th rowspan="2">Acount</th><th rowspan="2">Account detail</th>
+<? for($y = 0; $y < count($year_arr); $y++){ ?>
+			<th colspan="<?=number_format($week2)?>"><?=$year_arr[$y]?></th>
+<? } ?>
+		</tr>
+		<tr>
+<? 
+for($y = 0; $y < count($year_arr); $y++){
+	for($w = $week1; $w <= $week2; $w++){ 
+?>
+			<th>W<? if(strlen($w) == 1){ echo "0".$w; }else{ echo $w; } ?></th>
+<?
+	}
+}
+?>
+		</tr>
+	</thead>
+
+<?
+$channel_arr = array();
+$account_arr = array();
+$account_detail_arr = array();
+
+
+$sql = "select channel, account2, account1, sale_week, sum(sale_cnt) as qty, sum(sale_amt) as amt from raw_use where $add_query group by channel, account2, account1, sale_week";
+$rs = mysql_query($sql,$connect);
+while($data = mysql_fetch_array($rs)){
+	$channel = $data[channel];
+	$account = $data[account2];
+	$account_detail = $data[account1];
+	if($account_detail == "ElectroMart") $account_detail = "Emart";
+	$sale_week = $data[sale_week];
+	$amt = $data[amt];
+	$qty = $data[qty];
+
+	$account_detail_qty_value[$sale_week][$channel][$account][$account_detail] = $qty;
+	$channel_qty_value[$sale_week][$channel] = $channel_qty_value[$sale_week][$channel] + $qty;
+	$account_qty_value[$sale_week][$channel][$account] = $account_qty_value[$sale_week][$channel][$account] + $qty;
+	
+	$account_detail_value[$sale_week][$channel][$account][$account_detail] = $amt;
+	$channel_value[$sale_week][$channel] = $channel_value[$sale_week][$channel] + $amt;
+	$account_value[$sale_week][$channel][$account] = $account_value[$sale_week][$channel][$account] + $amt;
+
+	$align = account_align($channel,$account);
+	
+	if(@!in_array($channel,$channel_arr)) $channel_arr[] = $channel;
+	if($align != ""){
+		if(@!in_array($account,$account_arr[$channel])) $account_arr[$channel][$align] = $account;
+	}else{
+		if(@!in_array($account,$account_arr[$channel])) $account_arr[$channel][] = $account;
+	}
+	if(@!in_array($account_detail,$account_detail_arr[$channel][$account])) $account_detail_arr[$channel][$account][] = $account_detail;
+}
+?>
+		<tr onmouseover="this.style.backgroundColor='#cceeff';" onmouseout="this.style.backgroundColor='';">
+			<th style="text-align:left;" colspan="3">SUM</th>
+<? 
+for($yw = 0; $yw < count($yw_arr); $yw++){
+?>
+			<th style="text-align:right;font-size:11px;letter-spacing:-0.5px;"><span class="span_amt"><? echo @number_mil(array_sum($channel_value[$yw_arr[$yw]])) ?></span><span class="span_qty" style="display:none;"><? echo @number_value(array_sum($channel_qty_value[$yw_arr[$yw]])) ?></span></th>
+<?
+}
+?>
+		</tr>
+<?
+for($c = 0; $c < count($normal_channel_arr); $c++){
+?>
+		<tr onmouseover="this.style.backgroundColor='#cceeff';" onmouseout="this.style.backgroundColor='';">
+			<td style="text-align:left;" colspan="3"><a href="javascript:step01('<?=$normal_channel_arr[$c]?>',<?=count($account_arr[$normal_channel_arr[$c]])?>)"><img id="img_<?=$normal_channel_arr[$c]?>" src="../images/tree_plus.gif" /></a> <?=$normal_channel_arr[$c]?></td>
+<? 
+for($yw = 0; $yw < count($yw_arr); $yw++){
+?>
+			<td style="text-align:right;font-size:11px;letter-spacing:-0.5px;"><span class="span_amt"><? echo @number_mil($channel_value[$yw_arr[$yw]][$normal_channel_arr[$c]]) ?></span><span class="span_qty" style="display:none;"><? echo @number_value($channel_qty_value[$yw_arr[$yw]][$normal_channel_arr[$c]]) ?></span></td>
+<?
+}
+?>
+		</tr>
+<?
+	for($a = 0; $a < count($account_arr[$normal_channel_arr[$c]]); $a++){
+		$account_detail_cnt = count($account_detail_arr[$normal_channel_arr[$c]][$account_arr[$normal_channel_arr[$c]][$a]]);
+
+?>
+		<script> val2_cnt["<?=$normal_channel_arr[$c]?>_<?=$a + 1?>"] = <?=$account_detail_cnt?>; </script>
+		<tr onmouseover="this.style.backgroundColor='#cceeff';" onmouseout="this.style.backgroundColor='';" id="tr_<?=$normal_channel_arr[$c]?>_<?=$a+1?>" style="display:none;">
+			<td style="border-right:1px solid #fff;text-align:right;"><a href="javascript:step02('<?=$normal_channel_arr[$c]?>','<?=$a+1?>',<?=$account_detail_cnt?>)"><img id="img_<?=$normal_channel_arr[$c]?>_<?=$a + 1?>" src="../images/tree_plus.gif" /></a></td>
+			<td colspan="2" style="text-align:left;"><?=$account_arr[$normal_channel_arr[$c]][$a]?></td>
+<? 
+	for($yw = 0; $yw < count($yw_arr); $yw++){
+?>
+			<td style="text-align:right;font-size:11px;letter-spacing:-0.5px;"><span class="span_amt"><? echo @number_mil($account_value[$yw_arr[$yw]][$normal_channel_arr[$c]][$account_arr[$normal_channel_arr[$c]][$a]]) ?></span><span class="span_qty" style="display:none;"><? echo @number_value($account_qty_value[$yw_arr[$yw]][$normal_channel_arr[$c]][$account_arr[$normal_channel_arr[$c]][$a]]) ?></span></td>
+<?
+}
+?>
+		</tr>
+<?
+		$d2 = 1;
+		for($d = 0; $d < count($account_detail_arr[$normal_channel_arr[$c]][$account_arr[$normal_channel_arr[$c]][$a]]); $d++){
+
+?>
+		<tr onmouseover="this.style.backgroundColor='#cceeff';" onmouseout="this.style.backgroundColor='';" id="tr_<?=$normal_channel_arr[$c]?>_<?=$a+1?>_<?=$d2?>" style="display:none;">
+			<td style="border-right:1px solid #fff;"></td>
+			<td style="border-right:1px solid #fff;"></td>
+			<td style="text-align:left"><?=$account_detail_arr[$normal_channel_arr[$c]][$account_arr[$normal_channel_arr[$c]][$a]][$d]?></td>
+<? 
+	for($yw = 0; $yw < count($yw_arr); $yw++){
+?>
+			<td style="text-align:right;font-size:11px;letter-spacing:-0.5px;"><span class="span_amt"><? echo @number_mil($account_detail_value[$yw_arr[$yw]][$normal_channel_arr[$c]][$account_arr[$normal_channel_arr[$c]][$a]][$account_detail_arr[$normal_channel_arr[$c]][$account_arr[$normal_channel_arr[$c]][$a]][$d]]) ?></span><span class="span_qty" style="display:none;"><? echo @number_value($account_detail_qty_value[$yw_arr[$yw]][$normal_channel_arr[$c]][$account_arr[$normal_channel_arr[$c]][$a]][$account_detail_arr[$normal_channel_arr[$c]][$account_arr[$normal_channel_arr[$c]][$a]][$d]]) ?></span></td>
+<?
+}
+?>
+		</tr>	
+<?
+			$d2++;
+		}
+	}
+}		
+?>
+
+
+
+</table>
+
+
+
+
+
+
+
+	</div>
+
+
+<div>
+
+<script>
+document.getElementById("loading").style.display = "none";
+<? if($select_aq == "amt"){ ?>
+amt_chk();
+<? }else{ ?>
+qty_chk();
+<? } ?>
+</script>
+ </body>
+</html>

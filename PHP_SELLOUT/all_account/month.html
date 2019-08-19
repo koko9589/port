@@ -1,0 +1,418 @@
+<? include_once "../common/header_inc.php"; ?>
+<?
+$year_arr = $_GET[year_arr];
+if(count($year_arr) == 0){
+	$year_arr[] = date("Y");
+}
+
+$month_all = $_GET[month_all];
+$month_arr = $_GET[month_arr];
+if(count($month_arr) == 0){
+	for($m = 1; $m <= date("n"); $m++){
+		$month_arr[] = $m;
+	}
+}
+
+$select_aq = $_GET[select_aq];
+if($select_aq == "") $select_aq = "amt";
+
+for($y = 0; $y < count($year_arr); $y++){
+	for($m = 0; $m < count($month_arr); $m++){
+		if(strlen($month_arr[$m]) == 1) $ym_arr[] = $year_arr[$y]."0".$month_arr[$m];
+		else $ym_arr[] = $year_arr[$y].$month_arr[$m];
+	}
+}
+
+if(count($year_arr) > 1){
+	$year_query = " ( ";
+	for($y = 0; $y < count($year_arr); $y++){
+		if($y != 0) $year_query .= " or ";
+		$year_query .= " sale_year = '".$year_arr[$y]."' ";
+	}
+	$year_query .= " ) ";
+}else if(count($year_arr) == 1){
+	$year_query .= " sale_year = '".$year_arr[0]."' ";
+}
+
+$month_query = " and ";
+
+if(count($month_arr) > 1){
+	$month_query .= " ( ";
+	for($m = 0; $m < count($month_arr); $m++){
+		if($m != 0) $month_query .= " or ";
+		$month_query .= " sale_month = '".$month_arr[$m]."' ";
+	}
+	$month_query .= " ) ";
+}else if(count($month_arr) == 1){
+	$month_query .= " sale_month = '".$month_arr[0]."' ";
+}
+
+?>
+<script>
+$(function() {
+	$( ".select_year, .select_month, .month_all, .select_aq" ).checkboxradio({
+      icon: false
+    });
+
+	$('#month_all').click(function() {
+		if( $(this).is(":checked") ) {
+			for(var m = 1; m <= 12; m++){
+				$('#month-' + m).prop( "checked", true ).checkboxradio( "refresh" );
+			}
+		}else{
+			for(var m = 1; m <= 53; m++){
+				$('#month-' + m).prop( "checked", false ).checkboxradio( "refresh" );
+			}
+		}
+	});
+
+	$( "#search_submit, #excel_submit, #show_search, #hide_search" ).button();
+	$( "#search_submit" ).click( function() {
+		search_form.target = "";
+		search_form.action = "./month.html";
+		search_form.submit();
+	});
+	$( "#excel_submit" ).click( function() {
+		search_form.target = "";
+		search_form.action = "./month_excel.php";
+		search_form.submit();
+	});
+
+
+	$('#Amount').click(function() {
+		$(".span_qty").hide();
+		$(".span_amt").show();
+	});
+	$('#Quantity').click(function() {
+		$(".span_qty").show();
+		$(".span_amt").hide();
+	});
+	function runEffect() {
+      // get effect type from
+      var selectedEffect = $( "#effectTypes" ).val();
+
+      // Most effect types need no options passed by default
+      var options = {};
+
+      // some effects have required parameters
+      if ( selectedEffect === "scale" ) {
+        options = { percent: 50 };
+      } else if ( selectedEffect === "size" ) {
+        options = { to: { width: 280, height: 185 } };
+      } 
+
+      // Run the effect
+      $( "#search_div" ).show( selectedEffect, options, 500, callback );
+	  $( "#show_search" ).hide();
+	  $( "#hide_search" ).show();
+    }; 
+
+	function hideEffect() {
+      // get effect type from
+      var selectedEffect = $( "#effectTypes" ).val();
+
+      // Most effect types need no options passed by default
+      var options = {};
+
+      // some effects have required parameters
+      if ( selectedEffect === "scale" ) {
+        options = { percent: 50 };
+      } else if ( selectedEffect === "size" ) {
+        options = { to: { width: 280, height: 185 } };
+      } 
+
+      // Run the effect
+      $( "#search_div" ).hide( selectedEffect, options, 500, callback );
+	  $( "#show_search" ).show();
+	  $( "#hide_search" ).hide();
+    }; 
+	function callback() {      
+        //$( "#search_div:visible" ).removeAttr( "style" ).fadeOut();      
+    };
+
+	$( "#show_search" ).on( "click", function() {
+      runEffect();
+    }); 
+    $( "#hide_search" ).on( "click", function() {
+      hideEffect();
+    });
+});
+
+function amt_chk(){
+	$(".span_qty").hide();
+	$(".span_amt").show();
+}
+function qty_chk(){
+	$(".span_qty").show();
+	$(".span_amt").hide();
+}
+
+
+
+var val2_cnt = new Array();
+
+function step01(val1, cnt){
+	var basic = document.getElementById("tr_" + val1 + "_1");
+	var basic_style = basic.style.display;
+	for(i = 1; i <= cnt; i++){
+		var tmp = document.getElementById("tr_" + val1 + "_" + i);
+		if(basic_style == "none"){
+			document.getElementById("img_" + val1).src = "../images/tree_minus.gif";
+			tmp.style.display = "";
+		}else{
+			document.getElementById("img_" + val1).src = "../images/tree_plus.gif";
+			tmp.style.display = "none";
+			for(t = 1; t <= val2_cnt[val1 + "_" + i]; t++){
+				document.getElementById("img_" + val1 + "_" + i).src = "../images/tree_plus.gif";
+				var tmp2 = document.getElementById("tr_" + val1 + "_" + i + "_" + t);
+				tmp2.style.display = "none";
+			}
+		}
+	}
+}
+
+function step02(val1, val2, cnt){
+	var basic = document.getElementById("tr_" + val1 + "_" + val2 + "_1");
+	var basic_style = basic.style.display;
+	for(i = 1; i <= cnt; i++){
+		var tmp = document.getElementById("tr_" + val1 + "_" + val2 + "_" + i);
+		if(basic_style == "none"){
+			document.getElementById("img_" + val1 + "_" + val2).src = "../images/tree_minus.gif";
+			tmp.style.display = "";
+		}else{
+			document.getElementById("img_" + val1 + "_" + val2).src = "../images/tree_plus.gif";
+			tmp.style.display = "none";
+		}
+	}
+}
+</script>
+<style>
+table td, th { padding:3px; border:1px solid #ccc; }
+th { background-color:#ebebeb; font-weight:bold; }
+.select_week {width:100px;}
+</style>
+<body>
+<div id="loading" style="position:absolute;top:0;left:0;z-index:1000;width:100%;height:1100px;background-color:#fff;filter:alpha(opacity=50);text-align:center;padding-top:350px;">
+	<img src="../images/loading.gif" />
+</div>
+<form name="del_form" method="post">
+	<input name="id" type="hidden" />
+</form>
+
+<h1>Sell Out</h1>
+<h2>
+	All Account - Monthly &nbsp;&nbsp;
+	<input id="show_search" type="button" value="Show Search Condition" style="padding:2px 10px;border:2px solid #999;font-weight:bold; letter-spacing:0;" />
+	<input id="hide_search" type="button" value="Hide Search Condition" style="padding:2px 10px;border:2px solid #999;font-weight:bold; letter-spacing:0;display:none;" />
+	<input type="button" name="excel_submit" id="excel_submit" value="DOWNLOAD EXCEL" style="padding:2px 10px;border:2px solid #999;font-weight:bold; letter-spacing:0;" />
+</h2>
+
+<? include_once "../common/menu_inc.php"; ?>
+
+<div style="width:100%">
+	<div class="container">
+		<form name="search_form" method="get" action="./">
+			<input type="hidden" name="effects" id="effectTypes" value="blind" />
+			<div id="search_div" style="margin-bottom:10px;width:85%;min-width:1000px;border:1px solid #ccc;border-radius:10px;padding:14px;display:none;">
+				<div style="width:100%;">			
+					<label for="Amount" style="font-weight:bold;">Amount</label>
+					<input type="radio" name="select_aq" id="Amount" class="select_aq" value="amt" <? if($select_aq == "amt") echo "checked='checked'"; ?> />		
+					<label for="Quantity" style="font-weight:bold;">Quantity</label>
+					<input type="radio" name="select_aq" id="Quantity" class="select_aq" value="qty" <? if($select_aq == "qty") echo "checked='checked'"; ?> />	
+					&nbsp;&nbsp;
+<? for($y = 2017; $y <= date("Y"); $y++){ ?>
+					<label for="year-<?=$y?>"><?=$y?></label>
+					<input type="checkbox" name="year_arr[]" id="year-<?=$y?>" class="select_year" value="<?=$y?>" <? if(in_array($y,$year_arr)) echo "checked='checked'"; ?> />	
+<? } ?>
+				<!--</div>
+				<div style="margin-top:10px;">-->
+					&nbsp;&nbsp;
+					<label for="month_all">Select all</label>
+					<input type="checkbox" name="month_all" id="month_all" class="month_all" value="Y" <? if($month_all == "Y") echo "checked='checked'"; ?> />
+
+<? 
+	for($m = 1; $m <= 12; $m++){ 
+?>
+					<label for="month-<?=$m?>" style="width:30px;font-weight:bold;"><?=month_eng($m)?></label>
+					<input type="checkbox" name="month_arr[]" id="month-<?=$m?>" class="select_month" value="<?=$m?>" <? if(in_array($m,$month_arr)) echo "checked='checked'"; ?> />
+<? } ?>
+				<!--</div>
+
+				</div>
+				<div style="margin-top:10px;">
+
+				<div style="margin:10px;text-align:center;">-->
+					&nbsp;&nbsp;
+					<input type="button" name="search_submit" id="search_submit" value="SEARCH" style="border:2px solid #999;font-weight:bold;padding:5px 30px;letter-spacing:2px;" />
+				</div>
+			</div>
+		</form>
+
+
+
+
+<div style="padding:5px 0; font-size:11px;">
+Amount : 1,000,000 KRW, Quantity : 1 EA
+</div>
+
+<table class="table1">
+	<colgroup>
+		<col width="60" />
+		<col width="60" />
+		<col width="130" />
+<? 
+for($ym = 0; $ym < count($ym_arr); $ym++){
+?>
+		<col width="50" />
+<?
+}
+?>
+	</colgroup>
+	<thead>
+		<tr>
+			<th rowspan="2">Channel</th><th rowspan="2">Acount</th><th rowspan="2">Account detail</th>
+<? for($y = 0; $y < count($year_arr); $y++){ ?>
+			<th colspan="<?=count($month_arr)?>"><?=$year_arr[$y]?></th>
+<? } ?>
+		</tr>
+		<tr>
+<? 
+for($y = 0; $y < count($year_arr); $y++){
+	for($m = 0; $m < count($month_arr); $m++){ 
+?>
+			<th><?=month_eng($month_arr[$m])?></th>
+<?
+	}
+}
+?>
+		</tr>
+	</thead>
+
+<?
+$channel_arr = array();
+$account_arr = array();
+$account_detail_arr = array();
+
+
+$sql = "select channel, account2, account1, sale_year, sale_month, sum(sale_cnt) as qty, sum(sale_amt) as amt from raw_use where $year_query $month_query group by channel, account2, account1, sale_year, sale_month";
+$rs = mysql_query($sql,$connect);
+while($data = mysql_fetch_array($rs)){
+	$channel = $data[channel];
+	$account = $data[account2];
+	$account_detail = $data[account1];
+	if($account_detail == "ElectroMart") $account_detail = "Emart";
+	$sale_year = $data[sale_year];
+	$sale_month = $data[sale_month];
+	if(strlen($sale_month) == 1) $ym = $sale_year."0".$sale_month;
+	else $ym = $sale_year.$sale_month;
+	$amt = $data[amt];
+	$qty = $data[qty];
+
+	$account_detail_qty_value[$ym][$channel][$account][$account_detail] = $qty;
+	$channel_qty_value[$ym][$channel] = $channel_qty_value[$ym][$channel] + $qty;
+	$account_qty_value[$ym][$channel][$account] = $account_qty_value[$ym][$channel][$account] + $qty;
+
+	$account_detail_value[$ym][$channel][$account][$account_detail] = $amt;
+	$channel_value[$ym][$channel] = $channel_value[$ym][$channel] + $amt;
+	$account_value[$ym][$channel][$account] = $account_value[$ym][$channel][$account] + $amt;
+
+	$align = account_align($channel,$account);
+
+	if(@!in_array($channel,$channel_arr)) $channel_arr[] = $channel;
+	if($align != ""){
+		if(@!in_array($account,$account_arr[$channel])) $account_arr[$channel][$align] = $account;
+	}else{
+		if(@!in_array($account,$account_arr[$channel])) $account_arr[$channel][] = $account;
+	}
+	if(@!in_array($account_detail,$account_detail_arr[$channel][$account])) $account_detail_arr[$channel][$account][] = $account_detail;
+}
+?>
+		<tr onmouseover="this.style.backgroundColor='#cceeff';" onmouseout="this.style.backgroundColor='';">
+			<th style="text-align:left;" colspan="3">SUM</th>
+<? 
+for($ym = 0; $ym < count($ym_arr); $ym++){
+?>
+			<th style="text-align:right;font-size:11px;letter-spacing:-0.5px;"><span class="span_amt"><? echo @number_mil(array_sum($channel_value[$ym_arr[$ym]])) ?></span><span class="span_qty" style="display:none;"><? echo @number_value(array_sum($channel_qty_value[$ym_arr[$ym]])) ?></span></th>
+<?
+}
+?>
+		</tr>
+<?
+for($c = 0; $c < count($normal_channel_arr); $c++){
+?>
+		<tr onmouseover="this.style.backgroundColor='#cceeff';" onmouseout="this.style.backgroundColor='';">
+			<td style="text-align:left;" colspan="3"><a href="javascript:step01('<?=$normal_channel_arr[$c]?>',<?=count($account_arr[$normal_channel_arr[$c]])?>)"><img id="img_<?=$normal_channel_arr[$c]?>" src="../images/tree_plus.gif" /></a> <?=$normal_channel_arr[$c]?></td>
+<? 
+for($ym = 0; $ym < count($ym_arr); $ym++){
+?>
+			<td style="text-align:right;font-size:11px;letter-spacing:-0.5px;"><span class="span_amt"><? echo @number_mil($channel_value[$ym_arr[$ym]][$normal_channel_arr[$c]]) ?></span><span class="span_qty" style="display:none;"><? echo @number_value($channel_qty_value[$ym_arr[$ym]][$normal_channel_arr[$c]]) ?></span></td>
+<?
+}
+?>
+		</tr>
+<?
+	for($a = 0; $a < count($account_arr[$normal_channel_arr[$c]]); $a++){
+		$account_detail_cnt = count($account_detail_arr[$normal_channel_arr[$c]][$account_arr[$normal_channel_arr[$c]][$a]]);
+
+?>
+		<script> val2_cnt["<?=$normal_channel_arr[$c]?>_<?=$a + 1?>"] = <?=$account_detail_cnt?>; </script>
+		<tr onmouseover="this.style.backgroundColor='#cceeff';" onmouseout="this.style.backgroundColor='';" id="tr_<?=$normal_channel_arr[$c]?>_<?=$a+1?>" style="display:none;">
+			<td style="border-right:1px solid #fff;text-align:right;"><a href="javascript:step02('<?=$normal_channel_arr[$c]?>','<?=$a+1?>',<?=$account_detail_cnt?>)"><img id="img_<?=$normal_channel_arr[$c]?>_<?=$a + 1?>" src="../images/tree_plus.gif" /></a></td>
+			<td colspan="2" style="text-align:left;"><?=$account_arr[$normal_channel_arr[$c]][$a]?></td>
+<? 
+	for($ym = 0; $ym < count($ym_arr); $ym++){
+?>
+			<td style="text-align:right;font-size:11px;letter-spacing:-0.5px;"><span class="span_amt"><? echo @number_mil($account_value[$ym_arr[$ym]][$normal_channel_arr[$c]][$account_arr[$normal_channel_arr[$c]][$a]]) ?></span><span class="span_qty" style="display:none;"><? echo @number_value($account_qty_value[$ym_arr[$ym]][$normal_channel_arr[$c]][$account_arr[$normal_channel_arr[$c]][$a]]) ?></span></td>
+<?
+}
+?>
+		</tr>
+<?
+		$d2 = 1;
+		for($d = 0; $d < count($account_detail_arr[$normal_channel_arr[$c]][$account_arr[$normal_channel_arr[$c]][$a]]); $d++){
+
+?>
+		<tr onmouseover="this.style.backgroundColor='#cceeff';" onmouseout="this.style.backgroundColor='';" id="tr_<?=$normal_channel_arr[$c]?>_<?=$a+1?>_<?=$d2?>" style="display:none;">
+			<td style="border-right:1px solid #fff;"></td>
+			<td style="border-right:1px solid #fff;"></td>
+			<td style="text-align:left"><?=$account_detail_arr[$normal_channel_arr[$c]][$account_arr[$normal_channel_arr[$c]][$a]][$d]?></td>
+<? 
+	for($ym = 0; $ym < count($ym_arr); $ym++){
+?>
+			<td style="text-align:right;font-size:11px;letter-spacing:-0.5px;"><span class="span_amt"><? echo @number_mil($account_detail_value[$ym_arr[$ym]][$normal_channel_arr[$c]][$account_arr[$normal_channel_arr[$c]][$a]][$account_detail_arr[$normal_channel_arr[$c]][$account_arr[$normal_channel_arr[$c]][$a]][$d]]) ?></span><span class="span_qty" style="display:none;"><? echo @number_value($account_detail_qty_value[$ym_arr[$ym]][$normal_channel_arr[$c]][$account_arr[$normal_channel_arr[$c]][$a]][$account_detail_arr[$normal_channel_arr[$c]][$account_arr[$normal_channel_arr[$c]][$a]][$d]]) ?></span></td>
+<?
+}
+?>
+		</tr>	
+<?
+			$d2++;
+		}
+	}
+}		
+?>
+
+
+
+</table>
+
+
+
+
+
+
+
+	</div>
+
+
+<div>
+
+<script>
+document.getElementById("loading").style.display = "none";
+<? if($select_aq == "amt"){ ?>
+amt_chk();
+<? }else{ ?>
+qty_chk();
+<? } ?>
+</script>
+ </body>
+</html>
